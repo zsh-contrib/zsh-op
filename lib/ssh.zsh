@@ -107,8 +107,10 @@ _zsh_op_add_ssh_key_to_agent() {
     local key_fingerprint
     key_fingerprint=$(ssh-keygen -lf "$key_path" 2>/dev/null | awk '{print $2}')
 
+    gum log --level debug "Key fingerprint: $key_fingerprint"
+
     # Check if key is already in the agent
-    if ssh-add -l 2>/dev/null | grep -q "$key_fingerprint"; then
+    if [[ -n "$key_fingerprint" ]] && ssh-add -l 2>/dev/null | grep -q "$key_fingerprint"; then
         if [[ "$refresh" == "true" ]]; then
             gum log --level debug "Removing existing key '$key_name' from agent (refresh requested)"
             # Delete by public key
@@ -118,11 +120,15 @@ _zsh_op_add_ssh_key_to_agent() {
             rm -f "$key_path"
             return 0
         fi
+    else
+        gum log --level debug "Key not found in agent, adding..."
     fi
 
     # Add key to ssh-agent with expiration
-    if ! ssh-add -t "${expiration}" "$key_path" >/dev/null 2>&1; then
+    local ssh_add_output
+    if ! ssh_add_output=$(ssh-add -t "${expiration}" "$key_path" 2>&1); then
         gum log --level error "Failed to add SSH key to agent"
+        gum log --level debug "ssh-add output: $ssh_add_output"
         rm -f "$key_path"
         return 1
     fi
