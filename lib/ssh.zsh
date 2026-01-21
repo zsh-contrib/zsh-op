@@ -35,7 +35,7 @@ _zsh_op_load_ssh_key() {
     # Check cache unless refresh is requested
     if [[ "$refresh" == "false" ]]; then
         if key_data=$(_zsh_op_keychain_read "$service" "$key_name" 2>/dev/null); then
-            [[ -n "$DEBUG" ]] && gum log --level info "Loaded $key_name from cache"
+            gum log --level debug "Loaded $key_name from cache"
             # Add to ssh-agent from cache
             _zsh_op_add_ssh_key_to_agent "$key_name" "$key_data" "$expiration"
             return $?
@@ -107,7 +107,7 @@ _zsh_op_add_ssh_key_to_agent() {
     local ssh_add_output
     if ! ssh_add_output=$(gum spin --title "Adding SSH key '$key_name' to agent (expires: ${expiration})..." --show-stderr -- ssh-add -t "${expiration}" "$key_path"); then
         gum log --level error "Failed to add SSH key to agent"
-        [[ -n "$DEBUG" ]] && gum log --level error "ssh-add output: $ssh_add_output"
+        gum log --level debug "ssh-add output: $ssh_add_output"
         rm -f "$key_path"
         return 1
     fi
@@ -115,7 +115,7 @@ _zsh_op_add_ssh_key_to_agent() {
     # Cleanup temp file
     rm -f "$key_path"
 
-    [[ -n "$DEBUG" ]] && gum log --level info "Added $key_name to ssh-agent"
+    gum log --level debug "Added $key_name to ssh-agent"
     return 0
 }
 

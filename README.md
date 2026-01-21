@@ -193,7 +193,27 @@ Options:
 - `ZSH_OP_CACHE_DIR` - Cache directory (default: `~/.cache/op`)
 - `ZSH_OP_AUTO_EXPORT` - Auto-export on shell init (default: `true`)
 - `ZSH_OP_DEFAULT_PROFILE` - Default profile name (default: `personal`)
-- `DEBUG` - Enable debug output (default: unset)
+- `GUM_LOG_LEVEL` - Log level for output (default: `warn`; use `debug` for verbose output)
+
+### Debug Logging
+
+To see detailed debug output, set the log level to `debug`:
+
+```bash
+# Enable debug logging for a single command
+GUM_LOG_LEVEL=debug op-auth
+
+# Enable debug logging for the current shell session
+export GUM_LOG_LEVEL=debug
+op-auth
+op-load GITHUB_TOKEN
+
+# Available log levels (in order of verbosity):
+# - error: Only show errors
+# - warn: Show warnings and errors (default)
+# - info: Show informational messages
+# - debug: Show detailed debug information
+```
 
 ## How It Works
 
@@ -279,7 +299,7 @@ fi
 1. Check that you've run `op-auth` at least once for your profile
 2. Verify `ZSH_OP_AUTO_EXPORT` is not set to `false`
 3. Check metadata file exists: `ls ~/.cache/op/`
-4. Enable debug mode: `DEBUG=1 zsh`
+4. Enable debug logging: `export GUM_LOG_LEVEL=debug` and reload your shell
 
 ### Clear cached secrets
 

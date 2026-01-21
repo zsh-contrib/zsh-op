@@ -34,7 +34,7 @@ _zsh_op_load_env_secret() {
     # Check cache unless refresh is requested
     if [[ "$refresh" == "false" ]]; then
         if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
-            [[ -n "$DEBUG" ]] && gum log --level info "Loaded $secret_name from cache"
+            gum log --level debug "Loaded $secret_name from cache"
             echo "$value"
             return 0
         fi
@@ -89,7 +89,7 @@ _zsh_op_export_env_secret() {
     # Export to current shell
     export "${secret_name}=${value}"
 
-    [[ -n "$DEBUG" ]] && gum log --level info "Exported $secret_name"
+    gum log --level debug "Exported $secret_name"
     return 0
 }
 
@@ -108,7 +108,7 @@ _zsh_op_export_cached_secrets() {
 
     # Skip if no metadata (profile never loaded)
     if [[ ! -f "$metadata_file" ]]; then
-        [[ -n "$DEBUG" ]] && gum log --level warn "No cached secrets for profile: $profile"
+        gum log --level debug "No cached secrets for profile: $profile"
         return 0
     fi
 
@@ -131,11 +131,11 @@ _zsh_op_export_cached_secrets() {
         if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
             export "${secret_name}=${value}"
             ((count++))
-            [[ -n "$DEBUG" ]] && gum log --level info "Exported $secret_name from cache"
+            gum log --level debug "Exported $secret_name from cache"
         fi
     done < "$metadata_file"
 
-    [[ -n "$DEBUG" ]] && gum log --level info "Exported $count cached secret(s) for profile: $profile"
+    gum log --level debug "Exported $count cached secret(s) for profile: $profile"
     return 0
 }
 

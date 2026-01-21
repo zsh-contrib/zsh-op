@@ -43,10 +43,6 @@ _zsh_op_auto_export() {
     # Skip if config doesn't exist
     [[ -f "$ZSH_OP_CONFIG_FILE" ]] || return 0
 
-    # Silent operation unless DEBUG is set
-    local silent=true
-    [[ -n "$DEBUG" ]] && silent=false
-
     # Load config to get profiles
     _zsh_op_load_config "$ZSH_OP_CONFIG_FILE" 2>/dev/null || return 0
 
@@ -78,15 +74,11 @@ _zsh_op_auto_export() {
             local value
             if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
                 export "${secret_name}=${value}"
-                [[ "$silent" == "false" ]] && gum log --level info "Exported ${secret_name} from cache"
+                gum log --level debug "Exported ${secret_name} from cache"
             fi
         done < "$metadata_file"
     done
 }
 
-# Run auto-export on plugin load (suppress debug output unless DEBUG is set)
-if [[ -n "$DEBUG" ]]; then
-    _zsh_op_auto_export
-else
-    _zsh_op_auto_export >/dev/null 2>&1
-fi
+# Run auto-export on plugin load
+_zsh_op_auto_export 2>/dev/null
