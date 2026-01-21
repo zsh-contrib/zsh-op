@@ -112,9 +112,10 @@ _zsh_op_add_ssh_key_to_agent() {
     fi
 
     # Add key to ssh-agent with expiration
-    if ! gum spin --title "Adding SSH key '$key_name' to agent (expires: ${expiration})..." -- \
-        ssh-add -t "${expiration}" "$key_path"; then
+    local ssh_add_output
+    if ! ssh_add_output=$(gum spin --title "Adding SSH key '$key_name' to agent (expires: ${expiration})..." --show-stderr -- ssh-add -t "${expiration}" "$key_path"); then
         gum log --level error "Failed to add SSH key to agent"
+        [[ -n "$DEBUG" ]] && gum log --level error "ssh-add output: $ssh_add_output"
         rm -f "$key_path"
         return 1
     fi
