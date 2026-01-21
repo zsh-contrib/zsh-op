@@ -31,7 +31,8 @@ Examples:
 Environment Variables:
   ZSH_OP_DEFAULT_PROFILE          Default profile to use (default: personal)
   ZSH_OP_CONFIG_FILE              Config file location
-  DEBUG                           Enable debug output
+  GUM_LOG_LEVEL                   Log level: error, warn, info, debug (default: info)
+  DEBUG                           Convenience: sets GUM_LOG_LEVEL=debug and enables xtrace
 
 EOF
 }

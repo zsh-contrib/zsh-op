@@ -200,10 +200,13 @@ Options:
 To see detailed debug output, set the log level to `debug`:
 
 ```bash
-# Enable debug logging for a single command
+# Method 1: Set log level directly
 GUM_LOG_LEVEL=debug op-auth
 
-# Enable debug logging for the current shell session
+# Method 2: Use DEBUG=1 (convenience option, also enables shell xtrace)
+DEBUG=1 op-auth
+
+# For current shell session
 export GUM_LOG_LEVEL=debug
 op-auth
 op-load GITHUB_TOKEN
@@ -214,6 +217,8 @@ op-load GITHUB_TOKEN
 # - info: Show informational messages (default)
 # - debug: Show detailed debug information
 ```
+
+**Note**: `DEBUG=1` is a convenience option that sets `GUM_LOG_LEVEL=debug` and enables shell tracing (`set -x`) for detailed execution flow.
 
 ## How It Works
 

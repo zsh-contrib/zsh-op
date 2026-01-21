@@ -27,7 +27,8 @@ Examples:
 Environment Variables:
   ZSH_OP_DEFAULT_PROFILE          Default profile to use (default: personal)
   ZSH_OP_CONFIG_FILE              Config file location
-  DEBUG                           Enable debug output
+  GUM_LOG_LEVEL                   Log level: error, warn, info, debug (default: info)
+  DEBUG                           Convenience: sets GUM_LOG_LEVEL=debug and enables xtrace
 
 EOF
 }
@@ -110,7 +111,7 @@ op-auth() {
     echo ""
     gum log --level info "Authentication completed for profile: $profile"
     gum log --level info "SSH keys loaded with ${expiration} expiration"
-    gum log --level info "Environment secrets stored in Keychain"
+    gum log --level info "Secrets cached in Keychain"
 
     return 0
 }

@@ -21,6 +21,12 @@ typeset -gA ZSH_OP_SECRET_NAMES  # profile:name -> name
 : ${ZSH_OP_DEFAULT_PROFILE:="personal"}
 : ${GUM_LOG_LEVEL:="info"}
 
+# DEBUG support: if DEBUG=1, enable debug logging and shell tracing
+if [[ -n "$DEBUG" ]]; then
+    export GUM_LOG_LEVEL="debug"
+    set -x
+fi
+
 # Export GUM_LOG_LEVEL so gum can see it
 export GUM_LOG_LEVEL
 
