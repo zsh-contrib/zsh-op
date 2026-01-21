@@ -78,7 +78,7 @@ _zsh_op_auto_export() {
             local value
             if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
                 export "${secret_name}=${value}"
-                [[ "$silent" == "false" ]] && echo "[zsh-op] Exported ${secret_name} from cache"
+                [[ "$silent" == "false" ]] && gum log --level info "Exported ${secret_name} from cache"
             fi
         done < "$metadata_file"
     done
