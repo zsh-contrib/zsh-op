@@ -53,11 +53,10 @@ _zsh_op_load_ssh_key() {
     fi
 
     # Retrieve SSH key with spinner
-    if ! key_data=$(gum spin --title "Retrieving SSH key '$key_name' from 1Password..." -- \
-        op read "$op_path" --account "$account_url" 2>&1); then
+    if ! key_data=$(gum spin --title "Retrieving SSH key '$key_name' from 1Password..." --show-stderr -- \
+        op read "$op_path" --account "$account_url"); then
         gum log --level error "Failed to retrieve SSH key: $key_name"
         gum log --level warn "Path: $op_path"
-        gum log --level warn "Error: $key_data"
         return 1
     fi
 
@@ -104,10 +103,8 @@ _zsh_op_add_ssh_key_to_agent() {
     fi
 
     # Add key to ssh-agent with expiration
-    local ssh_add_output
-    if ! ssh_add_output=$(gum spin --title "Adding SSH key '$key_name' to agent (expires: ${expiration})..." --show-stderr -- ssh-add -t "${expiration}" "$key_path"); then
+    if ! gum spin --title "Adding SSH key '$key_name' to agent (expires: ${expiration})..." --show-stderr -- ssh-add -t "${expiration}" "$key_path"; then
         gum log --level error "Failed to add SSH key to agent"
-        gum log --level debug "ssh-add output: $ssh_add_output"
         rm -f "$key_path"
         return 1
     fi

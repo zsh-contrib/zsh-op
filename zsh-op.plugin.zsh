@@ -80,5 +80,5 @@ _zsh_op_auto_export() {
     done
 }
 
-# Run auto-export on plugin load
-_zsh_op_auto_export 2>/dev/null
+# Run auto-export on plugin load (suppress all output)
+_zsh_op_auto_export >/dev/null 2>&1
