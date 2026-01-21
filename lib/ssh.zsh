@@ -96,7 +96,13 @@ _zsh_op_add_ssh_key_to_agent() {
     chmod 600 "$key_path"
 
     # Check if ssh-agent is running
-    if ! ssh-add -l >/dev/null 2>&1; then
+    # ssh-add -l exit codes:
+    #   0 = agent running with keys
+    #   1 = agent running without keys
+    #   2 = agent not running
+    ssh-add -l >/dev/null 2>&1
+    local agent_status=$?
+    if [[ $agent_status -eq 2 ]]; then
         gum log --level error "SSH agent is not running"
         gum log --level info "Start with: eval \$(ssh-agent)"
         rm -f "$key_path"
@@ -188,8 +194,11 @@ _zsh_op_load_all_ssh_keys() {
 
 # Check if SSH agent is running and has keys
 _zsh_op_check_ssh_agent() {
-    if ! ssh-add -l >/dev/null 2>&1; then
-        return 1
-    fi
-    return 0
+    # ssh-add -l exit codes:
+    #   0 = agent running with keys
+    #   1 = agent running without keys
+    #   2 = agent not running
+    ssh-add -l >/dev/null 2>&1
+    local status=$?
+    [[ $status -ne 2 ]]
 }
