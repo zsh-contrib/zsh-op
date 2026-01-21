@@ -34,7 +34,7 @@ _zsh_op_load_env_secret() {
     # Check cache unless refresh is requested
     if [[ "$refresh" == "false" ]]; then
         if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
-            gum log --level debug "Loaded $secret_name from cache"
+            gum log --level debug "Loaded '$secret_name' from cache"
             echo "$value"
             return 0
         fi
@@ -53,13 +53,13 @@ _zsh_op_load_env_secret() {
     # Retrieve secret with spinner
     if ! value=$(gum spin --title "Retrieving '$secret_name' from 1Password..." --show-stderr -- \
         op read "$op_path" --account "$account_url"); then
-        gum log --level error "Failed to retrieve secret: $secret_name"
+        gum log --level error "Failed to retrieve secret '$secret_name'"
         gum log --level warn "Path: $op_path"
         return 1
     fi
 
     if [[ -z "$value" ]]; then
-        gum log --level error "Secret is empty: $secret_name"
+        gum log --level error "Secret '$secret_name' is empty"
         return 1
     fi
 
@@ -88,7 +88,7 @@ _zsh_op_export_env_secret() {
     # Export to current shell
     export "${secret_name}=${value}"
 
-    gum log --level debug "Exported $secret_name"
+    gum log --level debug "Exported '$secret_name'"
     return 0
 }
 
@@ -130,7 +130,7 @@ _zsh_op_export_cached_secrets() {
         if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
             export "${secret_name}=${value}"
             ((count++))
-            gum log --level debug "Exported $secret_name from cache"
+            gum log --level debug "Exported '$secret_name' from cache"
         fi
     done < "$metadata_file"
 

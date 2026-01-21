@@ -193,7 +193,7 @@ Options:
 - `ZSH_OP_CACHE_DIR` - Cache directory (default: `~/.cache/op`)
 - `ZSH_OP_AUTO_EXPORT` - Auto-export on shell init (default: `true`)
 - `ZSH_OP_DEFAULT_PROFILE` - Default profile name (default: `personal`)
-- `GUM_LOG_LEVEL` - Log level for output (default: `warn`; use `debug` for verbose output)
+- `GUM_LOG_LEVEL` - Log level for output (default: `info`; use `debug` for verbose output)
 
 ### Debug Logging
 
@@ -210,8 +210,8 @@ op-load GITHUB_TOKEN
 
 # Available log levels (in order of verbosity):
 # - error: Only show errors
-# - warn: Show warnings and errors (default)
-# - info: Show informational messages
+# - warn: Show warnings and errors
+# - info: Show informational messages (default)
 # - debug: Show detailed debug information
 ```
 

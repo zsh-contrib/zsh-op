@@ -112,14 +112,14 @@ op-load() {
             # Load environment secret
             local value
             if ! value=$(_zsh_op_load_env_secret "$profile" "$secret_name" "$refresh"); then
-                gum log --level error "Failed to load environment secret: $secret_name"
+                gum log --level error "Failed to load environment secret '$secret_name'"
                 return 1
             fi
 
             # Export if requested
             if [[ "$do_export" == "true" ]]; then
                 export "${secret_name}=${value}"
-                gum log --level info "✓ Exported $secret_name to current shell"
+                gum log --level info "Exported '$secret_name' to current shell"
             else
                 # Print value to stdout
                 echo "$value"
@@ -134,11 +134,11 @@ op-load() {
 
             # Load SSH key
             if ! _zsh_op_load_ssh_key "$profile" "$secret_name" "$expiration" "$refresh"; then
-                gum log --level error "Failed to load SSH key: $secret_name"
+                gum log --level error "Failed to load SSH key '$secret_name'"
                 return 1
             fi
 
-            gum log --level info "✓ SSH key '$secret_name' loaded with ${expiration} expiration"
+            gum log --level info "SSH key '$secret_name' loaded with ${expiration} expiration"
             ;;
 
         *)

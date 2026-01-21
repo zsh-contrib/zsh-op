@@ -19,6 +19,10 @@ typeset -gA ZSH_OP_SECRET_NAMES  # profile:name -> name
 : ${ZSH_OP_CACHE_DIR:="$HOME/.cache/op"}
 : ${ZSH_OP_AUTO_EXPORT:=true}
 : ${ZSH_OP_DEFAULT_PROFILE:="personal"}
+: ${GUM_LOG_LEVEL:="info"}
+
+# Export GUM_LOG_LEVEL so gum can see it
+export GUM_LOG_LEVEL
 
 # Load library files
 source "${ZSH_OP_PLUGIN_DIR}/lib/config.zsh"
@@ -74,7 +78,7 @@ _zsh_op_auto_export() {
             local value
             if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
                 export "${secret_name}=${value}"
-                gum log --level debug "Exported ${secret_name} from cache"
+                gum log --level debug "Exported '${secret_name}' from cache"
             fi
         done < "$metadata_file"
     done

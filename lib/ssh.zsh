@@ -35,7 +35,7 @@ _zsh_op_load_ssh_key() {
     # Check cache unless refresh is requested
     if [[ "$refresh" == "false" ]]; then
         if key_data=$(_zsh_op_keychain_read "$service" "$key_name" 2>/dev/null); then
-            gum log --level debug "Loaded $key_name from cache"
+            gum log --level debug "Loaded '$key_name' from cache"
             # Add to ssh-agent from cache
             _zsh_op_add_ssh_key_to_agent "$key_name" "$key_data" "$expiration" "$refresh"
             return $?
@@ -55,13 +55,13 @@ _zsh_op_load_ssh_key() {
     # Retrieve SSH key with spinner
     if ! key_data=$(gum spin --title "Retrieving SSH key '$key_name' from 1Password..." --show-stderr -- \
         op read "$op_path" --account "$account_url"); then
-        gum log --level error "Failed to retrieve SSH key: $key_name"
+        gum log --level error "Failed to retrieve SSH key '$key_name'"
         gum log --level warn "Path: $op_path"
         return 1
     fi
 
     if [[ -z "$key_data" ]]; then
-        gum log --level error "SSH key is empty: $key_name"
+        gum log --level error "SSH key '$key_name' is empty"
         return 1
     fi
 
@@ -136,7 +136,7 @@ _zsh_op_add_ssh_key_to_agent() {
     # Cleanup temp file
     rm -f "$key_path"
 
-    gum log --level debug "Added $key_name to ssh-agent"
+    gum log --level debug "Added '$key_name' to ssh-agent"
     return 0
 }
 
