@@ -81,10 +81,9 @@ _zsh_op_validate_config() {
     # Validate each account
     local i=0
     while [[ $i -lt $accounts_count ]]; do
-        local account_name account_url secrets_count
-        account_name=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].name // empty")
-        account_url=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].account // empty")
-        secrets_count=$(echo "$json" | $ZSH_OP_JQ ".accounts[$i].secrets | length")
+        local account_name=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].name // empty")
+        local account_url=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].account // empty")
+        local secrets_count=$(echo "$json" | $ZSH_OP_JQ ".accounts[$i].secrets | length")
 
         # Check required fields
         if [[ -z "$account_name" ]]; then
@@ -100,10 +99,9 @@ _zsh_op_validate_config() {
         # Validate secrets
         local j=0
         while [[ $j -lt $secrets_count ]]; do
-            local secret_kind secret_name secret_path
-            secret_kind=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].kind // empty")
-            secret_name=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].name // empty")
-            secret_path=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].path // empty")
+            local secret_kind=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].kind // empty")
+            local secret_name=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].name // empty")
+            local secret_path=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].path // empty")
 
             # Check required fields
             if [[ -z "$secret_kind" ]]; then
@@ -169,9 +167,8 @@ _zsh_op_load_config() {
 
     local i=0
     while [[ $i -lt $accounts_count ]]; do
-        local profile account_url
-        profile=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].name")
-        account_url=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].account")
+        local profile=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].name")
+        local account_url=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].account")
 
         # Store account mapping
         ZSH_OP_ACCOUNTS[$profile]="$account_url"
@@ -182,10 +179,9 @@ _zsh_op_load_config() {
 
         local j=0
         while [[ $j -lt $secrets_count ]]; do
-            local kind name path
-            kind=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].kind")
-            name=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].name")
-            path=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].path")
+            local kind=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].kind")
+            local name=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].name")
+            local path=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].path")
 
             # Store in global arrays with composite key: profile:name
             local key="${profile}:${name}"

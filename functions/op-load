@@ -79,7 +79,7 @@ op-load() {
     secret_name="$1"
 
     # Load config
-    if ! _zsh_op_load_config "$config_file" 2>/dev/null; then
+    if ! _zsh_op_load_config "$config_file"; then
         gum log --level error "Failed to load configuration"
         return 1
     fi
