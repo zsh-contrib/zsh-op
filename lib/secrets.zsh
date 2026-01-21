@@ -51,7 +51,7 @@ _zsh_op_load_env_secret() {
     fi
 
     # Retrieve secret with spinner
-    if ! value=$(gum spin --title "Retrieving $secret_name from 1Password..." --show-stderr -- \
+    if ! value=$(gum spin --title "Retrieving '$secret_name' from 1Password..." --show-stderr -- \
         op read "$op_path" --account "$account_url"); then
         gum log --level error "Failed to retrieve secret: $secret_name"
         gum log --level warn "Path: $op_path"
