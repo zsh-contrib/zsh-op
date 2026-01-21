@@ -37,7 +37,7 @@ _zsh_op_load_ssh_key() {
         if key_data=$(_zsh_op_keychain_read "$service" "$key_name" 2>/dev/null); then
             gum log --level debug "Loaded $key_name from cache"
             # Add to ssh-agent from cache
-            _zsh_op_add_ssh_key_to_agent "$key_name" "$key_data" "$expiration"
+            _zsh_op_add_ssh_key_to_agent "$key_name" "$key_data" "$expiration" "$refresh"
             return $?
         fi
     fi
@@ -72,16 +72,17 @@ _zsh_op_load_ssh_key() {
     fi
 
     # Add to ssh-agent
-    _zsh_op_add_ssh_key_to_agent "$key_name" "$key_data" "$expiration"
+    _zsh_op_add_ssh_key_to_agent "$key_name" "$key_data" "$expiration" "$refresh"
     return $?
 }
 
 # Add SSH key to ssh-agent with expiration
-# Usage: _zsh_op_add_ssh_key_to_agent <key_name> <key_data> <expiration>
+# Usage: _zsh_op_add_ssh_key_to_agent <key_name> <key_data> <expiration> [refresh]
 _zsh_op_add_ssh_key_to_agent() {
     local key_name="$1"
     local key_data="$2"
     local expiration="$3"
+    local refresh="${4:-false}"
 
     # Create temporary file with 600 permissions
     local key_path
@@ -102,8 +103,25 @@ _zsh_op_add_ssh_key_to_agent() {
         return 1
     fi
 
+    # Get fingerprint of the key we want to add
+    local key_fingerprint
+    key_fingerprint=$(ssh-keygen -lf "$key_path" 2>/dev/null | awk '{print $2}')
+
+    # Check if key is already in the agent
+    if ssh-add -l 2>/dev/null | grep -q "$key_fingerprint"; then
+        if [[ "$refresh" == "true" ]]; then
+            gum log --level debug "Removing existing key '$key_name' from agent (refresh requested)"
+            # Delete by public key
+            ssh-add -d "$key_path" >/dev/null 2>&1 || true
+        else
+            gum log --level debug "SSH key '$key_name' already in agent (use --refresh to reset expiration)"
+            rm -f "$key_path"
+            return 0
+        fi
+    fi
+
     # Add key to ssh-agent with expiration
-    if ! gum spin --title "Adding SSH key '$key_name' to agent (expires: ${expiration})..." --show-stderr -- ssh-add -t "${expiration}" "$key_path"; then
+    if ! ssh-add -t "${expiration}" "$key_path" >/dev/null 2>&1; then
         gum log --level error "Failed to add SSH key to agent"
         rm -f "$key_path"
         return 1

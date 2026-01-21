@@ -108,9 +108,9 @@ op-auth() {
 
     # Success summary
     echo ""
-    gum log --level info "✓ Authentication completed for profile: $profile"
-    gum log --level info "✓ SSH keys loaded with ${expiration} expiration"
-    gum log --level info "✓ Secrets cached in Keychain"
+    gum log --level info "Authentication completed for profile: $profile"
+    gum log --level info "SSH keys loaded with ${expiration} expiration"
+    gum log --level info "Secrets cached in Keychain"
 
     return 0
 }

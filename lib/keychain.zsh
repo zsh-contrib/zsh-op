@@ -40,6 +40,13 @@ _zsh_op_keychain_read() {
         return 1
     fi
 
+    # Check if value is hex-encoded (multiline values get hex-encoded)
+    # Hex string: only contains 0-9a-f characters
+    if [[ "$value" =~ ^[0-9a-fA-F]+$ ]] && [[ ${#value} -gt 40 ]]; then
+        # Decode hex to original value
+        value=$(echo "$value" | xxd -r -p)
+    fi
+
     echo "$value"
     return 0
 }
