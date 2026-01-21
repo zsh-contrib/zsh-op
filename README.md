@@ -40,49 +40,13 @@ pip3 install PyYAML
 
 ## Plugin Installation
 
-### Oh My Zsh
-
-1. Clone the repository:
+Add the following to your `~/.zshrc`:
 
 ```bash
-git clone https://github.com/zsh-contrib/zsh-op ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-op
+zinit light zsh-contrib/zsh-op
 ```
 
-2. Add to your `~/.zshrc`:
-
-```bash
-plugins=(... zsh-op)
-```
-
-3. Reload your shell:
-
-```bash
-source ~/.zshrc
-```
-
-### Antigen
-
-Add to your `~/.zshrc`:
-
-```bash
-antigen bundle zsh-contrib/zsh-op
-```
-
-### Manual Installation
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/zsh-contrib/zsh-op ~/.zsh/zsh-op
-```
-
-2. Source the plugin in your `~/.zshrc`:
-
-```bash
-source ~/.zsh/zsh-op/zsh-op.plugin.zsh
-```
-
-3. Reload your shell:
+Then reload your shell:
 
 ```bash
 source ~/.zshrc
@@ -325,67 +289,6 @@ To clear cached secrets for a profile:
 # This will remove from Keychain and delete metadata
 rm ~/.cache/op/personal.metadata
 security delete-generic-password -s "op-secrets-personal" -a "SECRET_NAME"
-```
-
-## Migration from example.sh
-
-If you're using the `example.sh` script, here's how to migrate:
-
-### 1. Map Your Secrets
-
-Old (example.sh):
-
-```bash
-ENV_SECRETS_KEYS=(
-    "op://Personal/GitHub/Secrets/GITHUB_TOKEN"
-)
-```
-
-New (config.yml):
-
-```yaml
-- kind: env
-  name: GITHUB_TOKEN
-  path: op://Personal/GitHub/Secrets/GITHUB_TOKEN
-```
-
-### 2. Update Function Calls
-
-Old:
-
-```bash
-ssh-auth              # Load personal
-ssh-auth --profile work
-```
-
-New:
-
-```bash
-op-auth              # Load personal
-op-auth work
-```
-
-### 3. Update Shell Initialization
-
-Old:
-
-```bash
-# In ~/.zshrc
-_export_env_secrets
-```
-
-New:
-
-```bash
-# Automatic - no changes needed
-# The plugin auto-exports on shell init
-```
-
-### 4. Clean Up Old Keychain Entries
-
-```bash
-# Remove old entries if you used example.sh
-security delete-generic-password -s "env-secrets" -a "GITHUB_TOKEN"
 ```
 
 ## Security Considerations
