@@ -37,11 +37,6 @@ autoload -Uz _op_auth _op_load
 
 # Auto-export cached secrets on shell initialization
 _zsh_op_auto_export() {
-    # Save xtrace state and disable it for silent loading
-    local xtrace_was_set=0
-    [[ -o xtrace ]] && xtrace_was_set=1
-    setopt local_options no_xtrace
-
     # Skip if disabled
     [[ "$ZSH_OP_AUTO_EXPORT" == "true" ]] || return 0
 
@@ -89,5 +84,9 @@ _zsh_op_auto_export() {
     done
 }
 
-# Run auto-export on plugin load
-_zsh_op_auto_export
+# Run auto-export on plugin load (suppress debug output unless DEBUG is set)
+if [[ -n "$DEBUG" ]]; then
+    _zsh_op_auto_export
+else
+    _zsh_op_auto_export >/dev/null 2>&1
+fi

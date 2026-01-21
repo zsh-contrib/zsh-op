@@ -145,9 +145,6 @@ _zsh_op_validate_config() {
 
 # Load config into global associative arrays
 _zsh_op_load_config() {
-    # Disable xtrace for clean config loading
-    setopt local_options no_xtrace
-
     local config_file="${1:-$ZSH_OP_CONFIG_FILE}"
 
     # Check dependencies first
