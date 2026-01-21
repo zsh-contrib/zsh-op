@@ -13,7 +13,7 @@ Arguments:
 
 Options:
   -e, --expiration TIME    SSH key expiration time (default: 1h)
-                          Valid formats: 30m, 1h, 8h, 24h, etc.
+                           Valid formats: 30m, 1h, 8h, 24h, etc.
   -c, --config PATH        Config file path (default: ~/.config/op/config.yml)
   -r, --refresh            Force refresh from 1Password (bypass cache)
   -h, --help               Show this help message
