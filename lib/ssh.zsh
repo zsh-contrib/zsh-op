@@ -66,14 +66,6 @@ _zsh_op_load_ssh_key() {
         return 1
     fi
 
-    # Clean up key data (remove quotes and empty lines)
-    key_data=$(echo "$key_data" | sed 's/^"//' | sed 's/"$//' | sed '/^[[:space:]]*$/d')
-
-    if [[ -z "$key_data" ]]; then
-        gum log --level error "SSH key is empty after cleanup: $key_name"
-        return 1
-    fi
-
     # Cache in keychain
     if ! _zsh_op_keychain_write "$service" "$key_name" "$key_data"; then
         gum log --level warn "Failed to cache SSH key in Keychain"
