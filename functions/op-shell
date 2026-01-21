@@ -1,12 +1,12 @@
 #!/usr/bin/env zsh
-# op-auth - Load all secrets for a profile
+# op-shell - Setup shell environment with secrets from 1Password
 
 # Usage information
-_op_auth_usage() {
+_op_shell_usage() {
     cat <<EOF
-Usage: op-auth [options] [profile]
+Usage: op-shell [options] [profile]
 
-Load all secrets (environment variables and SSH keys) for a 1Password profile.
+Setup your shell environment with all secrets (environment variables and SSH keys) from a 1Password profile.
 
 Arguments:
   profile              Profile name (default: \$ZSH_OP_DEFAULT_PROFILE or "personal")
@@ -19,10 +19,10 @@ Options:
   -h, --help               Show this help message
 
 Examples:
-  op-auth                          # Load personal profile with 1h SSH key expiration
-  op-auth work                     # Load work profile
-  op-auth work -e 8h               # Load work profile with 8h SSH key expiration
-  op-auth -r personal              # Force refresh personal profile from 1Password
+  op-shell                         # Setup personal profile with 1h SSH key expiration
+  op-shell work                    # Setup work profile
+  op-shell work -e 8h              # Setup work profile with 8h SSH key expiration
+  op-shell -r personal             # Force refresh personal profile from 1Password
 
 Environment Variables:
   ZSH_OP_DEFAULT_PROFILE          Default profile to use (default: personal)
@@ -34,7 +34,7 @@ EOF
 }
 
 # Main function
-op-auth() {
+op-shell() {
     # Default values
     local profile=""
     local expiration="1h"
@@ -50,7 +50,7 @@ op-auth() {
 
     # Handle help
     if [[ -n "$opt_help" ]]; then
-        _op_auth_usage
+        _op_shell_usage
         return 0
     fi
 

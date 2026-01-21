@@ -40,11 +40,11 @@ source "${ZSH_OP_PLUGIN_DIR}/lib/ssh.zsh"
 fpath=("${ZSH_OP_PLUGIN_DIR}/functions" "${ZSH_OP_PLUGIN_DIR}/completions" $fpath)
 
 # Source user commands (functions with explicit definitions)
-source "${ZSH_OP_PLUGIN_DIR}/functions/op-auth"
+source "${ZSH_OP_PLUGIN_DIR}/functions/op-shell"
 source "${ZSH_OP_PLUGIN_DIR}/functions/op-load"
 
 # Autoload completion functions
-autoload -Uz _op_auth _op_load
+autoload -Uz _op_shell _op_load
 
 # Auto-export cached secrets on shell initialization
 _zsh_op_auto_export() {

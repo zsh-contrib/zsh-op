@@ -10,7 +10,7 @@ A zsh plugin for seamless 1Password CLI integration. Manage your environment var
 - 🔑 **Multiple SSH keys per profile** - Name and manage multiple SSH keys independently
 - 📝 **Configuration-driven** - No hardcoded vault IDs or item paths
 - 🎨 **Beautiful UX** - Progress indicators and clear error messages via `gum`
-- 🔄 **Dual command interface** - Bulk loading with `op-auth`, on-demand with `op-load`
+- 🔄 **Dual command interface** - Setup shell environment with `op-shell`, load individual secrets with `op-load`
 
 ## Requirements
 
@@ -110,20 +110,20 @@ For SSH keys, append `?ssh-format=openssh` to the path.
 
 ## Usage
 
-### Load All Secrets for a Profile
+### Setup Shell Environment
 
 ```bash
-# Load personal profile (default)
-op-auth
+# Setup personal profile (default)
+op-shell
 
-# Load work profile
-op-auth work
+# Setup work profile
+op-shell work
 
-# Load with 8-hour SSH key expiration
-op-auth work -e 8h
+# Setup with 8-hour SSH key expiration
+op-shell work -e 8h
 
 # Force refresh from 1Password (bypass cache)
-op-auth -r personal
+op-shell -r personal
 ```
 
 ### Load Individual Secrets
@@ -147,7 +147,7 @@ op-load -r GITHUB_TOKEN
 
 ### Automatic Shell Initialization
 
-When you start a new shell, cached environment variables are automatically exported from Keychain (no 1Password API calls). SSH keys are NOT automatically loaded - use `op-auth` or `op-load` to add them to your ssh-agent.
+When you start a new shell, cached environment variables are automatically exported from Keychain (no 1Password API calls). SSH keys are NOT automatically loaded - use `op-shell` or `op-load` to add them to your ssh-agent.
 
 To disable auto-export:
 
@@ -157,12 +157,12 @@ export ZSH_OP_AUTO_EXPORT=false
 
 ## Commands
 
-### `op-auth`
+### `op-shell`
 
-Load all secrets (environment variables and SSH keys) for a profile.
+Setup your shell environment with all secrets (environment variables and SSH keys) from a 1Password profile.
 
 ```
-Usage: op-auth [options] [profile]
+Usage: op-shell [options] [profile]
 
 Options:
   -e, --expiration TIME    SSH key expiration (default: 1h)
@@ -201,14 +201,14 @@ To see detailed debug output, set the log level to `debug`:
 
 ```bash
 # Method 1: Set log level directly
-GUM_LOG_LEVEL=debug op-auth
+GUM_LOG_LEVEL=debug op-shell
 
 # Method 2: Use DEBUG=1 (convenience option, also enables shell xtrace)
-DEBUG=1 op-auth
+DEBUG=1 op-shell
 
 # For current shell session
 export GUM_LOG_LEVEL=debug
-op-auth
+op-shell
 op-load GITHUB_TOKEN
 
 # Available log levels (in order of verbosity):
@@ -301,7 +301,7 @@ fi
 
 ### Secrets not auto-exporting
 
-1. Check that you've run `op-auth` at least once for your profile
+1. Check that you've run `op-shell` at least once for your profile
 2. Verify `ZSH_OP_AUTO_EXPORT` is not set to `false`
 3. Check metadata file exists: `ls ~/.cache/op/`
 4. Enable debug logging: `export GUM_LOG_LEVEL=debug` and reload your shell

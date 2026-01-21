@@ -1,9 +1,9 @@
 #!/usr/bin/env zsh
-#compdef op-auth
+#compdef op-shell
 
-# Completion for op-auth command
+# Completion for op-shell command
 
-_op_auth() {
+_op_shell() {
     local -a profiles
 
     # Options
@@ -33,4 +33,4 @@ _op_auth() {
         "1:profile:(${profiles[*]})"
 }
 
-_op_auth "$@"
+_op_shell "$@"
