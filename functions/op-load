@@ -1,0 +1,156 @@
+#!/usr/bin/env zsh
+# op-load - Load individual secret on-demand
+
+# Usage information
+_op_load_usage() {
+    cat <<EOF
+Usage: op-load [options] <secret-name>
+
+Load an individual secret (environment variable or SSH key) on-demand.
+
+Arguments:
+  secret-name          Name of the secret to load
+
+Options:
+  -p, --profile PROFILE    Profile name (default: \$ZSH_OP_DEFAULT_PROFILE or "personal")
+  -x, --export             Export environment secret to current shell (env secrets only)
+  -e, --expiration TIME    SSH key expiration time (default: 1h, SSH keys only)
+                          Valid formats: 30m, 1h, 8h, 24h, etc.
+  -r, --refresh            Force refresh from 1Password (bypass cache)
+  -c, --config PATH        Config file path (default: ~/.config/op/config.yml)
+  -h, --help               Show this help message
+
+Examples:
+  op-load GITHUB_TOKEN                    # Load env secret (print value)
+  op-load GITHUB_TOKEN -x                 # Load and export env secret to shell
+  op-load github-work                     # Load SSH key with 1h expiration
+  op-load github-work -e 8h               # Load SSH key with 8h expiration
+  op-load -p work MYAPP_API_KEY           # Load secret from work profile
+  op-load -r GITHUB_TOKEN                 # Force refresh from 1Password
+
+Environment Variables:
+  ZSH_OP_DEFAULT_PROFILE          Default profile to use (default: personal)
+  ZSH_OP_CONFIG_FILE              Config file location
+  DEBUG                           Enable debug output
+
+EOF
+}
+
+# Main function
+op-load() {
+    # Default values
+    local profile="${ZSH_OP_DEFAULT_PROFILE:-personal}"
+    local expiration="1h"
+    local config_file="$ZSH_OP_CONFIG_FILE"
+    local refresh="false"
+    local do_export="false"
+    local secret_name=""
+
+    # Parse options using zparseopts
+    zparseopts -D -E \
+        p:=opt_profile -profile:=opt_profile \
+        e:=opt_expiration -expiration:=opt_expiration \
+        c:=opt_config -config:=opt_config \
+        r=opt_refresh -refresh=opt_refresh \
+        x=opt_export -export=opt_export \
+        h=opt_help -help=opt_help
+
+    # Handle help
+    if [[ -n "$opt_help" ]]; then
+        _op_load_usage
+        return 0
+    fi
+
+    # Handle options
+    [[ -n "$opt_profile" ]] && profile="${opt_profile[-1]}"
+    [[ -n "$opt_expiration" ]] && expiration="${opt_expiration[-1]}"
+    [[ -n "$opt_config" ]] && config_file="${opt_config[-1]}"
+    [[ -n "$opt_refresh" ]] && refresh="true"
+    [[ -n "$opt_export" ]] && do_export="true"
+
+    # Get secret name from remaining args
+    if [[ $# -eq 0 ]]; then
+        gum log --level error "Missing required argument: secret-name"
+        echo ""
+        _op_load_usage
+        return 1
+    fi
+
+    secret_name="$1"
+
+    # Load config
+    if ! _zsh_op_load_config "$config_file" 2>/dev/null; then
+        gum log --level error "Failed to load configuration"
+        return 1
+    fi
+
+    # Validate profile exists
+    if ! _zsh_op_profile_exists "$profile"; then
+        gum log --level error "Profile '$profile' not found in config"
+        local profiles=($(_zsh_op_get_profiles))
+        gum log --level info "Available profiles: ${profiles[*]}"
+        return 1
+    fi
+
+    # Validate secret exists
+    if ! _zsh_op_secret_exists "$profile" "$secret_name"; then
+        gum log --level error "Secret '$secret_name' not found in profile '$profile'"
+        local secrets=($(_zsh_op_get_secrets "$profile"))
+        if [[ ${#secrets[@]} -gt 0 ]]; then
+            gum log --level info "Available secrets: ${secrets[*]}"
+        fi
+        return 1
+    fi
+
+    # Get secret type
+    local key="${profile}:${secret_name}"
+    local secret_kind="${ZSH_OP_SECRET_KINDS[$key]}"
+
+    # Handle based on secret type
+    case "$secret_kind" in
+        env)
+            # Load environment secret
+            local value
+            if ! value=$(_zsh_op_load_env_secret "$profile" "$secret_name" "$refresh"); then
+                gum log --level error "Failed to load environment secret: $secret_name"
+                return 1
+            fi
+
+            # Export if requested
+            if [[ "$do_export" == "true" ]]; then
+                export "${secret_name}=${value}"
+                gum log --level info "✓ Exported $secret_name to current shell"
+            else
+                # Print value to stdout
+                echo "$value"
+            fi
+            ;;
+
+        ssh)
+            # Check if --export was specified (not valid for SSH keys)
+            if [[ "$do_export" == "true" ]]; then
+                gum log --level warn "Option --export is not valid for SSH keys (ignored)"
+            fi
+
+            # Load SSH key
+            if ! _zsh_op_load_ssh_key "$profile" "$secret_name" "$expiration" "$refresh"; then
+                gum log --level error "Failed to load SSH key: $secret_name"
+                return 1
+            fi
+
+            gum log --level info "✓ SSH key '$secret_name' loaded with ${expiration} expiration"
+            ;;
+
+        *)
+            gum log --level error "Unknown secret kind: $secret_kind"
+            return 1
+            ;;
+    esac
+
+    return 0
+}
+
+# Run if called directly (not sourced)
+if [[ "${(%):-%x}" == "${0}" ]]; then
+    op-load "$@"
+fi

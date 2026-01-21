@@ -1,0 +1,118 @@
+# zsh-op configuration file
+# Location: ~/.config/op/config.yml
+#
+# This file defines your 1Password accounts and the secrets to load from them.
+# Each account can have multiple environment variables and SSH keys.
+
+version: 1
+
+accounts:
+  # Personal 1Password account
+  - name: personal
+    account: my.1password.com
+    secrets:
+      # Environment variables
+      - kind: env
+        name: GITHUB_TOKEN
+        path: op://Personal/GitHub/Secrets/GITHUB_TOKEN
+
+      - kind: env
+        name: CLAUDE_CODE_OAUTH_TOKEN
+        path: op://Personal/Anthropic/Secrets/CLAUDE_CODE_OAUTH_TOKEN
+
+      - kind: env
+        name: OPENAI_API_KEY
+        path: op://Personal/OpenAI/credential
+
+      # SSH keys
+      - kind: ssh
+        name: personal-key
+        path: op://Private/SSH Key/private key?ssh-format=openssh
+
+      - kind: ssh
+        name: github-personal
+        path: op://Private/GitHub SSH/private key?ssh-format=openssh
+
+  # Work 1Password account
+  - name: work
+    account: team-em.1password.com
+    secrets:
+      # Environment variables
+      - kind: env
+        name: MYAPP_API_KEY
+        path: op://Infra/Prod/API_KEY
+
+      - kind: env
+        name: AWS_ACCESS_KEY_ID
+        path: op://Infra/AWS/access_key_id
+
+      - kind: env
+        name: AWS_SECRET_ACCESS_KEY
+        path: op://Infra/AWS/secret_access_key
+
+      - kind: env
+        name: SLACK_TOKEN
+        path: op://Employee/Slack/token
+
+      # SSH keys - multiple keys per account
+      - kind: ssh
+        name: github-work
+        path: op://Employee/GitHub SSH/private key?ssh-format=openssh
+
+      - kind: ssh
+        name: gitlab-work
+        path: op://Employee/GitLab SSH/private key?ssh-format=openssh
+
+      - kind: ssh
+        name: bastion-key
+        path: op://Infra/Bastion Host/private key?ssh-format=openssh
+
+# Configuration Notes:
+#
+# 1. Profile Names:
+#    - Use descriptive names like "personal", "work", "staging", etc.
+#    - These names are used with: op-auth [profile] and op-load -p [profile]
+#
+# 2. Account URLs:
+#    - Must match your 1Password account URL exactly
+#    - Find this in 1Password settings or when signing in
+#
+# 3. Secret Paths (op:// URIs):
+#    - Format: op://[Vault]/[Item]/[Field]
+#    - For SSH keys, add: ?ssh-format=openssh at the end
+#    - Find the exact path by:
+#      1. Right-click an item in 1Password
+#      2. Select "Copy Secret Reference"
+#      3. Paste here as the path
+#
+# 4. Secret Kinds:
+#    - env: Environment variables (exported to shell)
+#    - ssh: SSH private keys (added to ssh-agent)
+#
+# 5. Secret Names:
+#    - For env secrets: Must be valid environment variable names
+#    - For SSH keys: Can be any descriptive name (e.g., "github-work", "personal-key")
+#
+# 6. Multiple SSH Keys:
+#    - You can have multiple SSH keys per account
+#    - Use descriptive names to identify them
+#    - Example: "github-work", "gitlab-work", "bastion-key"
+#
+# Usage Examples:
+#
+#   # Load all secrets for personal account
+#   op-auth personal
+#
+#   # Load all secrets for work account with 8h SSH key expiration
+#   op-auth work -e 8h
+#
+#   # Load individual environment variable
+#   op-load GITHUB_TOKEN
+#   op-load GITHUB_TOKEN -x  # Also export to current shell
+#
+#   # Load individual SSH key
+#   op-load github-work
+#   op-load github-work -e 4h  # With 4h expiration
+#
+#   # Load from specific profile
+#   op-load -p work MYAPP_API_KEY

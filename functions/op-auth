@@ -1,0 +1,121 @@
+#!/usr/bin/env zsh
+# op-auth - Load all secrets for a profile
+
+# Usage information
+_op_auth_usage() {
+    cat <<EOF
+Usage: op-auth [options] [profile]
+
+Load all secrets (environment variables and SSH keys) for a 1Password profile.
+
+Arguments:
+  profile              Profile name (default: \$ZSH_OP_DEFAULT_PROFILE or "personal")
+
+Options:
+  -e, --expiration TIME    SSH key expiration time (default: 1h)
+                          Valid formats: 30m, 1h, 8h, 24h, etc.
+  -c, --config PATH        Config file path (default: ~/.config/op/config.yml)
+  -r, --refresh            Force refresh from 1Password (bypass cache)
+  -h, --help               Show this help message
+
+Examples:
+  op-auth                          # Load personal profile with 1h SSH key expiration
+  op-auth work                     # Load work profile
+  op-auth work -e 8h               # Load work profile with 8h SSH key expiration
+  op-auth -r personal              # Force refresh personal profile from 1Password
+
+Environment Variables:
+  ZSH_OP_DEFAULT_PROFILE          Default profile to use (default: personal)
+  ZSH_OP_CONFIG_FILE              Config file location
+  DEBUG                           Enable debug output
+
+EOF
+}
+
+# Main function
+op-auth() {
+    # Default values
+    local profile=""
+    local expiration="1h"
+    local config_file="$ZSH_OP_CONFIG_FILE"
+    local refresh="false"
+
+    # Parse options using zparseopts
+    zparseopts -D -E \
+        e:=opt_expiration -expiration:=opt_expiration \
+        c:=opt_config -config:=opt_config \
+        r=opt_refresh -refresh=opt_refresh \
+        h=opt_help -help=opt_help
+
+    # Handle help
+    if [[ -n "$opt_help" ]]; then
+        _op_auth_usage
+        return 0
+    fi
+
+    # Handle options
+    [[ -n "$opt_expiration" ]] && expiration="${opt_expiration[-1]}"
+    [[ -n "$opt_config" ]] && config_file="${opt_config[-1]}"
+    [[ -n "$opt_refresh" ]] && refresh="true"
+
+    # Get profile from remaining args or use default
+    if [[ $# -gt 0 ]]; then
+        profile="$1"
+    else
+        profile="${ZSH_OP_DEFAULT_PROFILE:-personal}"
+    fi
+
+    # Load config
+    gum log --level info "Loading configuration..."
+    if ! _zsh_op_load_config "$config_file"; then
+        gum log --level error "Failed to load configuration"
+        return 1
+    fi
+
+    # Validate profile exists
+    if ! _zsh_op_profile_exists "$profile"; then
+        gum log --level error "Profile '$profile' not found in config"
+        local profiles=($(_zsh_op_get_profiles))
+        gum log --level info "Available profiles: ${profiles[*]}"
+        return 1
+    fi
+
+    # Get account URL for this profile
+    local account_url="${ZSH_OP_ACCOUNTS[$profile]}"
+
+    # Check 1Password authentication
+    gum log --level info "Checking 1Password authentication..."
+    if ! op account get --account "$account_url" >/dev/null 2>&1; then
+        gum log --level error "Not signed in to 1Password account: $account_url"
+        gum log --level info "Run: op signin --account $account_url"
+        return 1
+    fi
+
+    gum log --level info "Loading secrets for profile: $profile"
+
+    # Load all environment secrets
+    if ! _zsh_op_load_all_env_secrets "$profile" "$refresh"; then
+        gum log --level warn "Some environment secrets failed to load"
+    fi
+
+    # Load all SSH keys
+    if ! _zsh_op_load_all_ssh_keys "$profile" "$expiration" "$refresh"; then
+        gum log --level warn "Some SSH keys failed to load"
+    fi
+
+    # Save metadata for auto-export
+    _zsh_op_save_metadata "$profile"
+
+    # Success summary
+    echo ""
+    gum log --level info "✓ Authentication completed for profile: $profile"
+    gum log --level info "✓ SSH keys loaded with ${expiration} expiration"
+    gum log --level info "✓ Secrets cached in Keychain"
+
+    return 0
+}
+
+# Run if called directly (not sourced)
+if [[ "${(%):-%x}" == "${0}" ]]; then
+    op-auth "$@"
+fi

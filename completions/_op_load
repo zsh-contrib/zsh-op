@@ -1,0 +1,60 @@
+#!/usr/bin/env zsh
+#compdef op-load
+
+# Completion for op-load command
+
+_op_load() {
+    local -a profiles secrets
+
+    # Options
+    local -a options
+    options=(
+        '(-p --profile)'{-p,--profile}'[Profile name]:profile:->profiles'
+        '(-e --expiration)'{-e,--expiration}'[SSH key expiration time]:expiration:(30m 1h 2h 4h 8h 12h 24h)'
+        '(-c --config)'{-c,--config}'[Config file path]:config file:_files'
+        '(-r --refresh)'{-r,--refresh}'[Force refresh from 1Password]'
+        '(-x --export)'{-x,--export}'[Export env secret to shell]'
+        '(-h --help)'{-h,--help}'[Show help message]'
+    )
+
+    _arguments -s -S \
+        $options \
+        "1:secret:->secrets" \
+        && return 0
+
+    case "$state" in
+        profiles)
+            # Try to load config and get profiles
+            if [[ -f "${ZSH_OP_CONFIG_FILE:-$HOME/.config/op/config.yml}" ]]; then
+                _zsh_op_load_config "${ZSH_OP_CONFIG_FILE:-$HOME/.config/op/config.yml}" 2>/dev/null
+                profiles=($(_zsh_op_get_profiles 2>/dev/null))
+            fi
+
+            # If no profiles found, use defaults
+            if [[ ${#profiles[@]} -eq 0 ]]; then
+                profiles=(personal work)
+            fi
+
+            _describe 'profile' profiles
+            ;;
+
+        secrets)
+            # Get profile from command line or use default
+            local profile="${opt_args[-p]:-${opt_args[--profile]:-${ZSH_OP_DEFAULT_PROFILE:-personal}}}"
+
+            # Try to load config and get secrets for profile
+            if [[ -f "${ZSH_OP_CONFIG_FILE:-$HOME/.config/op/config.yml}" ]]; then
+                _zsh_op_load_config "${ZSH_OP_CONFIG_FILE:-$HOME/.config/op/config.yml}" 2>/dev/null
+                secrets=($(_zsh_op_get_secrets "$profile" 2>/dev/null))
+            fi
+
+            if [[ ${#secrets[@]} -gt 0 ]]; then
+                _describe 'secret' secrets
+            else
+                _message "no secrets found for profile: $profile"
+            fi
+            ;;
+    esac
+}
+
+_op_load "$@"
