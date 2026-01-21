@@ -2,8 +2,8 @@
 # lib/secrets.zsh - Environment secret management
 
 # Load an environment secret from 1Password and cache in Keychain
-# Usage: _zsh_op_load_env_secret <profile> <secret_name> [refresh]
-_zsh_op_load_env_secret() {
+# Usage: _zsh_op_secret_env <profile> <secret_name> [refresh]
+_zsh_op_secret_env() {
     local profile="$1"
     local secret_name="$2"
     local refresh="${3:-false}"
@@ -81,7 +81,7 @@ _zsh_op_export_env_secret() {
     local refresh="${3:-false}"
 
     local value
-    if ! value=$(_zsh_op_load_env_secret "$profile" "$secret_name" "$refresh"); then
+    if ! value=$(_zsh_op_secret_env "$profile" "$secret_name" "$refresh"); then
         return 1
     fi
 
@@ -139,8 +139,8 @@ _zsh_op_export_cached_secrets() {
 }
 
 # Load all environment secrets for a profile
-# Usage: _zsh_op_load_all_env_secrets <profile> [refresh]
-_zsh_op_load_all_env_secrets() {
+# Usage: _zsh_op_secret_all_env <profile> [refresh]
+_zsh_op_secret_all_env() {
     local profile="$1"
     local refresh="${2:-false}"
 

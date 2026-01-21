@@ -2,8 +2,8 @@
 # lib/ssh.zsh - SSH key management with 1Password integration
 
 # Load an SSH key from 1Password and add to ssh-agent
-# Usage: _zsh_op_load_ssh_key <profile> <key_name> <expiration> [refresh]
-_zsh_op_load_ssh_key() {
+# Usage: _zsh_op_secret_ssh <profile> <key_name> <expiration> [refresh]
+_zsh_op_secret_ssh() {
     local profile="$1"
     local key_name="$2"
     local expiration="${3:-1h}"
@@ -174,7 +174,7 @@ _zsh_op_load_all_ssh_keys() {
         [[ "$kind" == "ssh" ]] || continue
 
         # Load SSH key
-        if _zsh_op_load_ssh_key "$profile" "$secret_name" "$expiration" "$refresh"; then
+        if _zsh_op_secret_ssh "$profile" "$secret_name" "$expiration" "$refresh"; then
             ((loaded++))
         else
             ((failed++))

@@ -10,7 +10,7 @@ A zsh plugin for seamless 1Password CLI integration. Manage your environment var
 - 🔑 **Multiple SSH keys per profile** - Name and manage multiple SSH keys independently
 - 📝 **Configuration-driven** - No hardcoded vault IDs or item paths
 - 🎨 **Beautiful UX** - Progress indicators and clear error messages via `gum`
-- 🔄 **Dual command interface** - Setup shell environment with `op-shell`, load individual secrets with `op-load`
+- 🔄 **Dual command interface** - Setup shell environment with `op-shell`, load individual secrets with `op-secret`
 
 ## Requirements
 
@@ -130,24 +130,24 @@ op-shell -r personal
 
 ```bash
 # Load and print an environment variable
-op-load GITHUB_TOKEN
+op-secret GITHUB_TOKEN
 
 # Load and export to current shell
-op-load GITHUB_TOKEN -x
+op-secret GITHUB_TOKEN -x
 
 # Load an SSH key
-op-load github-work
+op-secret github-work
 
 # Load from specific profile
-op-load -p work MYAPP_API_KEY
+op-secret -p work MYAPP_API_KEY
 
 # Force refresh from 1Password
-op-load -r GITHUB_TOKEN
+op-secret -r GITHUB_TOKEN
 ```
 
 ### Automatic Shell Initialization
 
-When you start a new shell, cached environment variables are automatically exported from Keychain (no 1Password API calls). SSH keys are NOT automatically loaded - use `op-shell` or `op-load` to add them to your ssh-agent.
+When you start a new shell, cached environment variables are automatically exported from Keychain (no 1Password API calls). SSH keys are NOT automatically loaded - use `op-shell` or `op-secret` to add them to your ssh-agent.
 
 To disable auto-export:
 
@@ -171,12 +171,12 @@ Options:
   -h, --help               Show help
 ```
 
-### `op-load`
+### `op-secret`
 
 Load an individual secret on-demand.
 
 ```
-Usage: op-load [options] <secret-name>
+Usage: op-secret [options] <secret-name>
 
 Options:
   -p, --profile PROFILE    Profile (default: personal)
@@ -209,7 +209,7 @@ DEBUG=1 op-shell
 # For current shell session
 export GUM_LOG_LEVEL=debug
 op-shell
-op-load GITHUB_TOKEN
+op-secret GITHUB_TOKEN
 
 # Available log levels (in order of verbosity):
 # - error: Only show errors
@@ -355,8 +355,8 @@ accounts:
 Load individual keys:
 
 ```bash
-op-load github-work
-op-load gitlab-work -e 4h
+op-secret github-work
+op-secret gitlab-work -e 4h
 ```
 
 ### Profile-Specific Defaults
@@ -368,7 +368,7 @@ Set different defaults per shell:
 export ZSH_OP_DEFAULT_PROFILE="work"
 
 # Now these use work profile by default
-op-load MYAPP_API_KEY
+op-secret MYAPP_API_KEY
 ```
 
 ## Contributing

@@ -41,10 +41,10 @@ fpath=("${ZSH_OP_PLUGIN_DIR}/functions" "${ZSH_OP_PLUGIN_DIR}/completions" $fpat
 
 # Source user commands (functions with explicit definitions)
 source "${ZSH_OP_PLUGIN_DIR}/functions/op-shell"
-source "${ZSH_OP_PLUGIN_DIR}/functions/op-load"
+source "${ZSH_OP_PLUGIN_DIR}/functions/op-secret"
 
 # Autoload completion functions
-autoload -Uz _op_shell _op_load
+autoload -Uz _op_shell _op_secret
 
 # Auto-export cached secrets on shell initialization
 _zsh_op_auto_export() {

@@ -95,7 +95,7 @@ op-shell() {
     gum log --level info "Loading secrets for profile: $profile"
 
     # Load all environment secrets
-    if ! _zsh_op_load_all_env_secrets "$profile" "$refresh"; then
+    if ! _zsh_op_secret_all_env "$profile" "$refresh"; then
         gum log --level warn "Some environment secrets failed to load"
     fi
 

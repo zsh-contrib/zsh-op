@@ -71,7 +71,7 @@ accounts:
 #
 # 1. Profile Names:
 #    - Use descriptive names like "personal", "work", "staging", etc.
-#    - These names are used with: op-auth [profile] and op-load -p [profile]
+#    - These names are used with: op-shell [profile] and op-secret -p [profile]
 #
 # 2. Account URLs:
 #    - Must match your 1Password account URL exactly
@@ -101,18 +101,18 @@ accounts:
 # Usage Examples:
 #
 #   # Load all secrets for personal account
-#   op-auth personal
+#   op-shell personal
 #
 #   # Load all secrets for work account with 8h SSH key expiration
-#   op-auth work -e 8h
+#   op-shell work -e 8h
 #
 #   # Load individual environment variable
-#   op-load GITHUB_TOKEN
-#   op-load GITHUB_TOKEN -x  # Also export to current shell
+#   op-secret GITHUB_TOKEN
+#   op-secret GITHUB_TOKEN -x  # Also export to current shell
 #
 #   # Load individual SSH key
-#   op-load github-work
-#   op-load github-work -e 4h  # With 4h expiration
+#   op-secret github-work
+#   op-secret github-work -e 4h  # With 4h expiration
 #
 #   # Load from specific profile
-#   op-load -p work MYAPP_API_KEY
+#   op-secret -p work MYAPP_API_KEY
