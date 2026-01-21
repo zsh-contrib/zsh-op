@@ -57,8 +57,7 @@ _zsh_op_validate_config() {
     local json="$1"
 
     # Check version field
-    local version
-    version=$(echo "$json" | jq -r '.version // empty')
+    local version=$(echo "$json" | jq -r '.version // empty')
     if [[ -z "$version" ]]; then
         gum log --level error "Config missing 'version' field"
         return 1
@@ -71,8 +70,7 @@ _zsh_op_validate_config() {
     fi
 
     # Check accounts array exists
-    local accounts_count
-    accounts_count=$(echo "$json" | jq '.accounts | length')
+    local accounts_count=$(echo "$json" | jq '.accounts | length')
     if [[ "$accounts_count" -eq 0 ]]; then
         gum log --level error "Config has no accounts defined"
         return 1
@@ -149,8 +147,7 @@ _zsh_op_load_config() {
     _zsh_op_check_dependencies || return 1
 
     # Parse YAML to JSON
-    local json
-    json=$(_zsh_op_parse_yaml "$config_file") || return 1
+    local json=$(_zsh_op_parse_yaml "$config_file") || return 1
 
     # Validate config
     _zsh_op_validate_config "$json" || return 1
@@ -162,8 +159,7 @@ _zsh_op_load_config() {
     ZSH_OP_SECRET_NAMES=()
 
     # Load accounts and secrets
-    local accounts_count
-    accounts_count=$(echo "$json" | jq '.accounts | length')
+    local accounts_count=$(echo "$json" | jq '.accounts | length')
 
     local i=0
     while [[ $i -lt $accounts_count ]]; do
@@ -174,8 +170,7 @@ _zsh_op_load_config() {
         ZSH_OP_ACCOUNTS[$profile]="$account_url"
 
         # Load secrets for this account
-        local secrets_count
-        secrets_count=$(echo "$json" | jq ".accounts[$i].secrets | length")
+        local secrets_count=$(echo "$json" | jq ".accounts[$i].secrets | length")
 
         local j=0
         while [[ $j -lt $secrets_count ]]; do
