@@ -149,8 +149,3 @@ op-load() {
 
     return 0
 }
-
-# Run if called directly (not sourced)
-if [[ "${(%):-%x}" == "${0}" ]]; then
-    op-load "$@"
-fi

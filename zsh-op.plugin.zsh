@@ -30,11 +30,12 @@ source "${ZSH_OP_PLUGIN_DIR}/lib/keychain.zsh"
 source "${ZSH_OP_PLUGIN_DIR}/lib/secrets.zsh"
 source "${ZSH_OP_PLUGIN_DIR}/lib/ssh.zsh"
 
-# Add directories to fpath for autoload
+# Add directories to fpath for autoload and completions
 fpath=("${ZSH_OP_PLUGIN_DIR}/functions" "${ZSH_OP_PLUGIN_DIR}/completions" $fpath)
 
-# Autoload user commands
-autoload -Uz op-auth op-load
+# Source user commands (functions with explicit definitions)
+source "${ZSH_OP_PLUGIN_DIR}/functions/op-auth"
+source "${ZSH_OP_PLUGIN_DIR}/functions/op-load"
 
 # Autoload completion functions
 autoload -Uz _op_auth _op_load
