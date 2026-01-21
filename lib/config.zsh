@@ -1,28 +1,28 @@
 #!/usr/bin/env zsh
 # lib/config.zsh - Configuration parsing and validation
 
-# Check if all required dependencies are available (zsh-native way)
+# Check if all required dependencies are available
 _zsh_op_check_dependencies() {
     local missing=()
 
-    # Use zsh's built-in commands array to find and cache command paths
-    (( $+commands[gum] )) && ZSH_OP_GUM=$commands[gum] || missing+=("gum")
-    (( $+commands[op] )) && ZSH_OP_OP=$commands[op] || missing+=("op")
-    (( $+commands[security] )) && ZSH_OP_SECURITY=$commands[security] || missing+=("security")
-    (( $+commands[python3] )) && ZSH_OP_PYTHON3=$commands[python3] || missing+=("python3")
-    (( $+commands[jq] )) && ZSH_OP_JQ=$commands[jq] || missing+=("jq")
+    # Check for required commands
+    command -v gum >/dev/null 2>&1 || missing+=("gum")
+    command -v op >/dev/null 2>&1 || missing+=("op")
+    command -v security >/dev/null 2>&1 || missing+=("security")
+    command -v python3 >/dev/null 2>&1 || missing+=("python3")
+    command -v jq >/dev/null 2>&1 || missing+=("jq")
 
     if [[ ${#missing[@]} -gt 0 ]]; then
-        ${ZSH_OP_GUM:-echo} log --level error "Missing required dependencies: ${missing[*]}" 2>/dev/null || \
+        gum log --level error "Missing required dependencies: ${missing[*]}" 2>/dev/null || \
             echo "ERROR: Missing required dependencies: ${missing[*]}" >&2
         return 1
     fi
 
     # Check for PyYAML module
-    if ! $ZSH_OP_PYTHON3 -c "import yaml" 2>/dev/null; then
-        ${ZSH_OP_GUM:-echo} log --level error "PyYAML module is required but not found" 2>/dev/null || \
+    if ! python3 -c "import yaml" 2>/dev/null; then
+        gum log --level error "PyYAML module is required but not found" 2>/dev/null || \
             echo "ERROR: PyYAML module is required but not found" >&2
-        ${ZSH_OP_GUM:-echo} log --level info "Install with: pip3 install PyYAML" 2>/dev/null || \
+        gum log --level info "Install with: pip3 install PyYAML" 2>/dev/null || \
             echo "INFO: Install with: pip3 install PyYAML" >&2
         return 1
     fi
@@ -30,7 +30,7 @@ _zsh_op_check_dependencies() {
     return 0
 }
 
-# Parse YAML config file to JSON using $ZSH_OP_PYTHON3
+# Parse YAML config file to JSON using python3
 _zsh_op_parse_yaml() {
     local config_file="$1"
 
@@ -41,9 +41,9 @@ _zsh_op_parse_yaml() {
         return 1
     fi
 
-    # Convert YAML to JSON using $ZSH_OP_PYTHON3
+    # Convert YAML to JSON using python3
     local json
-    if ! json=$($ZSH_OP_PYTHON3 -c "import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin)))" < "$config_file" 2>&1); then
+    if ! json=$(python3 -c "import yaml, json, sys; print(json.dumps(yaml.safe_load(sys.stdin)))" < "$config_file" 2>&1); then
         gum log --level error "Failed to parse config file"
         gum log --level error "YAML parsing error: $json"
         return 1
@@ -58,7 +58,7 @@ _zsh_op_validate_config() {
 
     # Check version field
     local version
-    version=$(echo "$json" | $ZSH_OP_JQ -r '.version // empty')
+    version=$(echo "$json" | jq -r '.version // empty')
     if [[ -z "$version" ]]; then
         gum log --level error "Config missing 'version' field"
         return 1
@@ -72,7 +72,7 @@ _zsh_op_validate_config() {
 
     # Check accounts array exists
     local accounts_count
-    accounts_count=$(echo "$json" | $ZSH_OP_JQ '.accounts | length')
+    accounts_count=$(echo "$json" | jq '.accounts | length')
     if [[ "$accounts_count" -eq 0 ]]; then
         gum log --level error "Config has no accounts defined"
         return 1
@@ -81,9 +81,9 @@ _zsh_op_validate_config() {
     # Validate each account
     local i=0
     while [[ $i -lt $accounts_count ]]; do
-        local account_name=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].name // empty")
-        local account_url=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].account // empty")
-        local secrets_count=$(echo "$json" | $ZSH_OP_JQ ".accounts[$i].secrets | length")
+        local account_name=$(echo "$json" | jq -r ".accounts[$i].name // empty")
+        local account_url=$(echo "$json" | jq -r ".accounts[$i].account // empty")
+        local secrets_count=$(echo "$json" | jq ".accounts[$i].secrets | length")
 
         # Check required fields
         if [[ -z "$account_name" ]]; then
@@ -99,9 +99,9 @@ _zsh_op_validate_config() {
         # Validate secrets
         local j=0
         while [[ $j -lt $secrets_count ]]; do
-            local secret_kind=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].kind // empty")
-            local secret_name=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].name // empty")
-            local secret_path=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].path // empty")
+            local secret_kind=$(echo "$json" | jq -r ".accounts[$i].secrets[$j].kind // empty")
+            local secret_name=$(echo "$json" | jq -r ".accounts[$i].secrets[$j].name // empty")
+            local secret_path=$(echo "$json" | jq -r ".accounts[$i].secrets[$j].path // empty")
 
             # Check required fields
             if [[ -z "$secret_kind" ]]; then
@@ -163,29 +163,29 @@ _zsh_op_load_config() {
 
     # Load accounts and secrets
     local accounts_count
-    accounts_count=$(echo "$json" | $ZSH_OP_JQ '.accounts | length')
+    accounts_count=$(echo "$json" | jq '.accounts | length')
 
     local i=0
     while [[ $i -lt $accounts_count ]]; do
-        local profile=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].name")
-        local account_url=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].account")
+        local profile=$(echo "$json" | jq -r ".accounts[$i].name")
+        local account_url=$(echo "$json" | jq -r ".accounts[$i].account")
 
         # Store account mapping
         ZSH_OP_ACCOUNTS[$profile]="$account_url"
 
         # Load secrets for this account
         local secrets_count
-        secrets_count=$(echo "$json" | $ZSH_OP_JQ ".accounts[$i].secrets | length")
+        secrets_count=$(echo "$json" | jq ".accounts[$i].secrets | length")
 
         local j=0
         while [[ $j -lt $secrets_count ]]; do
-            local kind=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].kind")
-            local name=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].name")
-            local path=$(echo "$json" | $ZSH_OP_JQ -r ".accounts[$i].secrets[$j].path")
+            local kind=$(echo "$json" | jq -r ".accounts[$i].secrets[$j].kind")
+            local name=$(echo "$json" | jq -r ".accounts[$i].secrets[$j].name")
+            local secret_path=$(echo "$json" | jq -r ".accounts[$i].secrets[$j].path")
 
             # Store in global arrays with composite key: profile:name
             local key="${profile}:${name}"
-            ZSH_OP_SECRETS[$key]="$path"
+            ZSH_OP_SECRETS[$key]="$secret_path"
             ZSH_OP_SECRET_KINDS[$key]="$kind"
             ZSH_OP_SECRET_NAMES[$key]="$name"
 
