@@ -1,24 +1,30 @@
 # zsh-op
 
-A Zsh plugin for seamless 1Password CLI integration. Manage environment variables and SSH keys from 1Password with automatic caching, fast shell initialization, and a configuration-driven workflow.
+1Password CLI for Zsh — secure credential caching, multi-profile support, and SSH key management.
 
-## Features
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- Secure secret management via 1Password vaults
-- Fast shell initialization with macOS Keychain caching
-- Multi-profile support for separate personal and work credentials
-- Multiple SSH keys per profile with independent management
-- Configuration-driven setup with no hardcoded vault IDs
-- Progress indicators and clear error messages via `gum`
-- Dual command interface: `op-shell` for full setup, `op-secret` for individual secrets
+Stop typing `op read` by hand. `zsh-op` reads a YAML config, fetches secrets from 1Password on first use, caches them in macOS Keychain, and exports them automatically on every shell start — with SSH keys loaded into ssh-agent and credentials ready before you run a single command.
 
 ## Requirements
 
 - macOS (for Keychain storage)
 - [1Password CLI](https://developer.1password.com/docs/cli/get-started/) (`op`)
-- [gum](https://github.com/charmbracelet/gum) (for UX)
-- `jq` (JSON processing)
+- [gum](https://github.com/charmbracelet/gum) (`gum`)
+- `jq`
 - `python3` with PyYAML (`pip3 install PyYAML`)
+
+**macOS (Homebrew):**
+
+```bash
+brew install 1password-cli gum jq python3 && pip3 install PyYAML
+```
+
+**Nix:**
+
+```bash
+nix profile install nixpkgs#_1password-cli nixpkgs#gum nixpkgs#jq nixpkgs#python3
+```
 
 ## Installation
 
@@ -44,7 +50,7 @@ source ~/.zsh/plugins/zsh-op/zsh-op.plugin.zsh
 
 ## Configuration
 
-Create a configuration file at `~/.config/op/config.yml`:
+Create `~/.config/op/config.yml`:
 
 ```yaml
 version: 1
@@ -71,20 +77,14 @@ accounts:
       - kind: ssh
         name: github-work
         path: op://Employee/GitHub SSH/private key?ssh-format=openssh
-
-      - kind: ssh
-        name: gitlab-work
-        path: op://Employee/GitLab SSH/private key?ssh-format=openssh
 ```
 
-See [config.example.yml](config.example.yml) for a complete example with documentation.
-
-To find the correct `op://` path for your secrets, right-click an item in the 1Password desktop app and select **"Copy Secret Reference"**. For SSH keys, append `?ssh-format=openssh` to the path.
+See [config.example.yml](config.example.yml) for a complete annotated example. To find the correct `op://` path, right-click an item in the 1Password desktop app and select **Copy Secret Reference**. Append `?ssh-format=openssh` for SSH keys.
 
 ### Environment Variables
 
 | Variable | Default | Description |
-|---|---|---|
+|----------|---------|-------------|
 | `ZSH_OP_CONFIG_FILE` | `~/.config/op/config.yml` | Config file location |
 | `ZSH_OP_CACHE_DIR` | `~/.cache/op` | Cache directory |
 | `ZSH_OP_AUTO_EXPORT` | `true` | Auto-export env vars on shell init |
@@ -95,7 +95,7 @@ To find the correct `op://` path for your secrets, right-click an item in the 1P
 
 ### `op-shell`
 
-Setup your shell environment with all secrets from a profile.
+Set up your shell environment with all secrets from a profile.
 
 ```
 Usage: op-shell [options] [profile]
@@ -108,10 +108,10 @@ Options:
 ```
 
 ```bash
-op-shell              # Setup default profile
-op-shell work         # Setup work profile
-op-shell work -e 8h   # Setup with 8-hour SSH key expiration
-op-shell -r personal  # Force refresh from 1Password
+op-shell              # setup default profile
+op-shell work         # setup work profile
+op-shell work -e 8h   # setup with 8-hour SSH key expiration
+op-shell -r personal  # force refresh from 1Password
 ```
 
 ### `op-secret`
@@ -123,7 +123,7 @@ Usage: op-secret [options] <secret-name>
 
 Options:
   -p, --profile PROFILE    Profile (default: personal)
-  -x, --export             Export env secret to shell
+  -x, --export             Export env secret to current shell
   -e, --expiration TIME    SSH key expiration (default: 1h)
   -r, --refresh            Force refresh from 1Password
   -c, --config PATH        Config file path
@@ -131,18 +131,16 @@ Options:
 ```
 
 ```bash
-op-secret GITHUB_TOKEN      # Load and print a secret
-op-secret GITHUB_TOKEN -x   # Export to current shell
-op-secret github-work       # Load an SSH key
-op-secret -p work API_KEY   # Load from specific profile
-op-secret -r GITHUB_TOKEN   # Force refresh from 1Password
+op-secret GITHUB_TOKEN      # load and print a secret
+op-secret GITHUB_TOKEN -x   # export to current shell
+op-secret github-work       # load an SSH key
+op-secret -p work API_KEY   # load from specific profile
+op-secret -r GITHUB_TOKEN   # force refresh from 1Password
 ```
 
 ### Automatic Shell Initialization
 
-Cached environment variables are automatically exported from Keychain on shell startup (no 1Password API calls). SSH keys are not automatically loaded — use `op-shell` or `op-secret` to add them to your ssh-agent.
-
-To disable auto-export:
+Cached env vars are exported from Keychain on shell startup — no 1Password API calls. SSH keys are not automatically loaded; use `op-shell` or `op-secret` to add them. Disable with:
 
 ```bash
 export ZSH_OP_AUTO_EXPORT=false
@@ -150,41 +148,43 @@ export ZSH_OP_AUTO_EXPORT=false
 
 ## How It Works
 
-1. **Configuration** — YAML config defines profiles with secret references
-2. **1Password CLI** — Fetches secrets via `op read` on first load
-3. **Keychain Caching** — Stores secrets in macOS Keychain (encrypted at rest)
-4. **SSH Agent** — Adds SSH keys to ssh-agent with configurable expiration
-5. **Shell Export** — Automatically exports cached env vars on shell init
+1. **Configuration** — YAML config defines profiles with `op://` secret references
+2. **1Password CLI** — fetches secrets via `op read` on first load
+3. **Keychain Caching** — stores secrets in macOS Keychain (encrypted at rest)
+4. **SSH Agent** — adds SSH keys to ssh-agent with configurable expiration
+5. **Shell Export** — automatically exports cached env vars on shell init
 
-Secrets are stored in Keychain as `op-secrets-{profile}` / `{secret-name}`. Metadata is tracked at `~/.cache/op/{profile}.metadata`.
+Secrets are stored as `op-secrets-{profile}` / `{secret-name}`. Metadata is tracked at `~/.cache/op/{profile}.metadata`.
 
 ## Troubleshooting
 
-**"python3 is required but not found"** — Install with `brew install python3`.
+**"python3 is required but not found"** — `brew install python3`
 
-**"PyYAML module is required"** — Install with `pip3 install PyYAML`.
+**"PyYAML module is required"** — `pip3 install PyYAML`
 
-**"Not signed in to 1Password account"** — Run `op signin --account my.1password.com`.
+**"Not signed in to 1Password account"** — `op signin --account my.1password.com`
 
-**"Failed to retrieve secret"** — Verify the `op://` path in your config, ensure vault access, and test with `op read "op://Vault/Item/Field"`.
+**"Failed to retrieve secret"** — verify the `op://` path in your config and test with `op read "op://Vault/Item/Field"`
 
-**"SSH agent is not running"** — Start with `eval $(ssh-agent)`.
+**"SSH agent is not running"** — `eval $(ssh-agent)`
 
-**Secrets not auto-exporting** — Ensure `op-shell` has been run at least once, `ZSH_OP_AUTO_EXPORT` is not `false`, and metadata exists in `~/.cache/op/`.
+**Secrets not auto-exporting** — ensure `op-shell` has run at least once, `ZSH_OP_AUTO_EXPORT` is not `false`, and metadata exists in `~/.cache/op/`
 
-**Debug logging** — Set `GUM_LOG_LEVEL=debug` or use `DEBUG=1` before any command for verbose output.
+**Debug logging** — `GUM_LOG_LEVEL=debug op-shell` or `DEBUG=1 op-shell`
 
-## Directory Structure
+## The zsh-contrib Ecosystem
 
-```
-zsh-op/
-  completions/       # Zsh completion definitions
-  functions/         # Plugin function files
-  lib/               # Shared library scripts
-  config.example.yml # Example configuration file
-  zsh-op.plugin.zsh  # Plugin entry point
-```
+| Repo | What it provides |
+|------|-----------------|
+| [zsh-aws](https://github.com/zsh-contrib/zsh-aws) | AWS credential management with aws-vault and tmux |
+| [zsh-eza](https://github.com/zsh-contrib/zsh-eza) | eza with Catppuccin and Rose Pine theming |
+| [zsh-fzf](https://github.com/zsh-contrib/zsh-fzf) | fzf with Catppuccin and Rose Pine theming |
+| **zsh-op** ← you are here | 1Password CLI with secure caching and SSH key management |
+| [zsh-tmux](https://github.com/zsh-contrib/zsh-tmux) | Automatic tmux window title management |
+| [zsh-vivid](https://github.com/zsh-contrib/zsh-vivid) | vivid LS_COLORS generation with theme support |
 
 ## License
 
-MIT License - see [LICENSE](./LICENSE) for details.
+[MIT](LICENSE) — Copyright (c) 2025 zsh-contrib
+
+<!-- markdownlint-disable-file MD013 -->
