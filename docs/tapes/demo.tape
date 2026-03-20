@@ -2,7 +2,7 @@
 
 Output docs/demo.webp
 
-Set Shell "bash"
+Set Shell "zsh"
 Set FontSize 18
 Set Width 1200
 Set Height 700
@@ -14,7 +14,7 @@ Set Padding 20
 Set TypingSpeed 75ms
 
 Hide
-Type "source ~/.zshrc && clear"
+Type "source ./zsh-op.plugin.zsh && clear"
 Enter
 Sleep 1s
 Show
@@ -23,7 +23,7 @@ Type "op-shell -e 8h"
 Sleep 500ms
 Enter
 
-Sleep 25s
+Sleep 5s
 
 Type "ssh-add -l"
 Sleep 500ms
