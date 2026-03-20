@@ -143,9 +143,6 @@ _zsh_op_validate_config() {
 _zsh_op_load_config() {
     local config_file="${1:-$ZSH_OP_CONFIG_FILE}"
 
-    # Check dependencies first
-    _zsh_op_check_dependencies || return 1
-
     # Parse YAML to JSON
     local json=$(_zsh_op_parse_yaml "$config_file") || return 1
 
