@@ -6,6 +6,8 @@
 
 Stop typing `op read` by hand. `zsh-op` reads a YAML config, fetches secrets from 1Password on first use, caches them in macOS Keychain, and exports them automatically on every shell start — with SSH keys loaded into ssh-agent and credentials ready before you run a single command.
 
+![demo](docs/demo.webp)
+
 ## Requirements
 
 - macOS (for Keychain storage)
