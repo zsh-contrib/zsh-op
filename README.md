@@ -1,6 +1,6 @@
 # zsh-op
 
-1Password CLI for Zsh — secure credential caching, multi-profile support, and SSH key management.
+> 1Password CLI for Zsh — secure credential caching, multi-profile support, and SSH key management.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![test](https://github.com/zsh-contrib/zsh-op/actions/workflows/test.yml/badge.svg)](https://github.com/zsh-contrib/zsh-op/actions/workflows/test.yml)
 
