@@ -2,7 +2,7 @@
 
 1Password CLI for Zsh — secure credential caching, multi-profile support, and SSH key management.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![test](https://github.com/zsh-contrib/zsh-op/actions/workflows/test.yml/badge.svg)](https://github.com/zsh-contrib/zsh-op/actions/workflows/test.yml)
 
 Stop typing `op read` by hand. `zsh-op` reads a YAML config, fetches secrets from 1Password on first use, caches them in macOS Keychain, and exports them automatically on every shell start — with SSH keys loaded into ssh-agent and credentials ready before you run a single command.
 
