@@ -24,6 +24,11 @@ accounts:
         name: OPENAI_API_KEY
         path: op://Personal/OpenAI/credential
 
+      # File secrets - written to disk, then the file path is exported
+      - kind: file
+        name: GOOGLE_APPLICATION_CREDENTIALS
+        path: op://Personal/GCP/service-account-json
+
       # SSH keys
       - kind: ssh
         name: personal-key
@@ -87,10 +92,12 @@ accounts:
 #
 # 4. Secret Kinds:
 #    - env: Environment variables (exported to shell)
+#    - file: File secrets (written to disk, path exported to shell)
 #    - ssh: SSH private keys (added to ssh-agent)
 #
 # 5. Secret Names:
 #    - For env secrets: Must be valid environment variable names
+#    - For file secrets: Must be valid environment variable names
 #    - For SSH keys: Can be any descriptive name (e.g., "github-work", "personal-key")
 #
 # 6. Multiple SSH Keys:
@@ -109,6 +116,9 @@ accounts:
 #   # Load individual environment variable
 #   op-secret GITHUB_TOKEN
 #   op-secret GITHUB_TOKEN -x  # Also export to current shell
+#
+#   # Load individual file secret
+#   op-secret GOOGLE_APPLICATION_CREDENTIALS -x  # Export path to current shell
 #
 #   # Load individual SSH key
 #   op-secret github-work

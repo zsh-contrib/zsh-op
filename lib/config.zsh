@@ -107,14 +107,19 @@ _zsh_op_validate_config() {
                 return 1
             fi
 
-            if [[ "$secret_kind" != "env" && "$secret_kind" != "ssh" ]]; then
+            if [[ "$secret_kind" != "env" && "$secret_kind" != "ssh" && "$secret_kind" != "file" ]]; then
                 gum log --level error "Secret '$secret_name' has invalid kind: $secret_kind"
-                gum log --level info "Valid kinds: env, ssh"
+                gum log --level info "Valid kinds: env, ssh, file"
                 return 1
             fi
 
             if [[ -z "$secret_name" ]]; then
                 gum log --level error "Secret at account '$account_name' index $j missing 'name' field"
+                return 1
+            fi
+
+            if [[ "$secret_kind" == "file" && ! "$secret_name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+                gum log --level error "File secret '$secret_name' must use a valid environment variable name"
                 return 1
             fi
 

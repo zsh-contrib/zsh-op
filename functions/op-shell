@@ -6,7 +6,7 @@ _op_shell_usage() {
     cat <<EOF
 Usage: op-shell [options] [profile]
 
-Setup your shell environment with all secrets (environment variables and SSH keys) from a 1Password profile.
+Setup your shell environment with all secrets (environment variables, file secrets, and SSH keys) from a 1Password profile.
 
 Arguments:
   profile              Profile name (default: \$ZSH_OP_DEFAULT_PROFILE or "personal")
@@ -97,6 +97,11 @@ op-shell() {
     # Load all environment secrets
     if ! _zsh_op_secret_all_env "$profile" "$refresh"; then
         gum log --level warn "Some environment secrets failed to load"
+    fi
+
+    # Load all file secrets
+    if ! _zsh_op_secret_all_files "$profile" "$refresh"; then
+        gum log --level warn "Some file secrets failed to load"
     fi
 
     # Load all SSH keys

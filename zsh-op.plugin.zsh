@@ -11,7 +11,7 @@ ZSH_OP_PLUGIN_DIR="${0:h}"
 # Global configuration variables
 typeset -gA ZSH_OP_ACCOUNTS      # profile -> account-url
 typeset -gA ZSH_OP_SECRETS       # profile:name -> op-path
-typeset -gA ZSH_OP_SECRET_KINDS  # profile:name -> (env|ssh)
+typeset -gA ZSH_OP_SECRET_KINDS  # profile:name -> (env|ssh|file)
 typeset -gA ZSH_OP_SECRET_NAMES  # profile:name -> name
 
 # Default settings
@@ -65,7 +65,7 @@ _zsh_op_auto_export() {
         # Skip if no metadata (profile never loaded)
         [[ -f "$metadata_file" ]] || continue
 
-        # Read metadata to get list of cached env secrets
+        # Read metadata to get list of cached secrets
         local service="op-secrets-${profile}"
         local line secret_name
 
@@ -78,15 +78,24 @@ _zsh_op_auto_export() {
             local secret_type="${line%%:*}"
             secret_name="${line#*:}"
 
-            # Only export env secrets
-            [[ "$secret_type" == "env" ]] || continue
-
-            # Read from keychain and export
-            local value
-            if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
-                export "${secret_name}=${value}"
-                gum log --level debug "Exported '${secret_name}' from cache"
-            fi
+            case "$secret_type" in
+            env)
+                local value
+                if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
+                    export "${secret_name}=${value}"
+                    gum log --level debug "Exported '${secret_name}' from cache"
+                fi
+                ;;
+            file)
+                local value file_path
+                if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
+                    if file_path=$(_zsh_op_write_secret_file "$profile" "$secret_name" "$value"); then
+                        export "${secret_name}=${file_path}"
+                        gum log --level debug "Exported '${secret_name}' file path from cache"
+                    fi
+                fi
+                ;;
+            esac
         done < "$metadata_file"
     done
 }

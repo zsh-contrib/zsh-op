@@ -39,7 +39,8 @@ valid_json() {
       "account": "my.1password.com",
       "secrets": [
         {"kind": "env", "name": "GITHUB_TOKEN", "path": "op://Personal/GitHub/token"},
-        {"kind": "ssh", "name": "my-key",       "path": "op://Private/SSH/private key"}
+        {"kind": "ssh", "name": "my-key",       "path": "op://Private/SSH/private key"},
+        {"kind": "file", "name": "GOOGLE_APPLICATION_CREDENTIALS", "path": "op://Personal/GCP/service-account"}
       ]
     }
   ]
@@ -144,7 +145,7 @@ JSON
   [[ "$status" -ne 0 ]]
 }
 
-@test "_zsh_op_validate_config: accepts both env and ssh secret kinds" {
+@test "_zsh_op_validate_config: accepts env, ssh, and file secret kinds" {
   run zsh -c "
     $(load_config_lib)
     json=\$(cat << 'JSON'
@@ -154,6 +155,15 @@ JSON
     _zsh_op_validate_config \"\$json\"
   "
   [[ "$status" -eq 0 ]]
+}
+
+@test "_zsh_op_validate_config: fails when file secret name is not an environment variable name" {
+  run zsh -c "
+    $(load_config_lib)
+    json='{\"version\":\"1\",\"accounts\":[{\"name\":\"p\",\"account\":\"a.1password.com\",\"secrets\":[{\"kind\":\"file\",\"name\":\"not-valid-name\",\"path\":\"op://V/I/F\"}]}]}'
+    _zsh_op_validate_config \"\$json\"
+  "
+  [[ "$status" -ne 0 ]]
 }
 
 # ---------------------------------------------------------------------------

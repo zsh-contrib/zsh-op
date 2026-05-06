@@ -69,6 +69,10 @@ accounts:
         name: personal-key
         path: op://Private/SSH Key/private key?ssh-format=openssh
 
+      - kind: file
+        name: GOOGLE_APPLICATION_CREDENTIALS
+        path: op://Personal/GCP/service-account-json
+
   - name: work
     account: team.1password.com
     secrets:
@@ -81,7 +85,7 @@ accounts:
         path: op://Employee/GitHub SSH/private key?ssh-format=openssh
 ```
 
-See [config.example.yml](config.example.yml) for a complete annotated example. To find the correct `op://` path, right-click an item in the 1Password desktop app and select **Copy Secret Reference**. Append `?ssh-format=openssh` for SSH keys.
+See [config.example.yml](config.example.yml) for a complete annotated example. To find the correct `op://` path, right-click an item in the 1Password desktop app and select **Copy Secret Reference**. Append `?ssh-format=openssh` for SSH keys. File secrets are written to `ZSH_OP_CACHE_DIR/files/<profile>/<name>` and the `name` is exported as an environment variable containing that file path.
 
 ### Environment Variables
 
@@ -97,7 +101,7 @@ See [config.example.yml](config.example.yml) for a complete annotated example. T
 
 ### `op-shell`
 
-Set up your shell environment with all secrets from a profile.
+Set up your shell environment with all secrets from a profile. File secrets are written to disk and exported as paths.
 
 ```
 Usage: op-shell [options] [profile]
@@ -135,6 +139,7 @@ Options:
 ```bash
 op-secret GITHUB_TOKEN      # load and print a secret
 op-secret GITHUB_TOKEN -x   # export to current shell
+op-secret GOOGLE_APPLICATION_CREDENTIALS -x # write file and export path
 op-secret github-work       # load an SSH key
 op-secret -p work API_KEY   # load from specific profile
 op-secret -r GITHUB_TOKEN   # force refresh from 1Password
