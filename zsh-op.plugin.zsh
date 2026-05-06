@@ -75,8 +75,9 @@ _zsh_op_auto_export() {
             [[ -z "$line" ]] && continue
 
             # Parse: type:name (e.g., "env:GITHUB_TOKEN" or "ssh:github-work")
-            local secret_type="${line%%:*}"
+            local metadata_type="${line%%:*}"
             secret_name="${line#*:}"
+            local secret_type="$(_zsh_op_cached_secret_type "$profile" "$secret_name" "$metadata_type")"
 
             case "$secret_type" in
             env)

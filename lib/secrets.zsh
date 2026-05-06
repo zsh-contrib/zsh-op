@@ -213,6 +213,26 @@ _zsh_op_export_file_secret() {
     return 0
 }
 
+# Resolve cached metadata through the currently loaded config when possible.
+# This keeps auto-export correct if a secret changes kind between env and file.
+_zsh_op_cached_secret_type() {
+    local profile="$1"
+    local secret_name="$2"
+    local metadata_type="$3"
+    local key="${profile}:${secret_name}"
+    local config_type=""
+
+    if [[ "${(t)ZSH_OP_SECRET_KINDS}" == *association* ]]; then
+        config_type="${ZSH_OP_SECRET_KINDS[$key]}"
+    fi
+
+    if [[ "$config_type" == "env" || "$config_type" == "file" ]]; then
+        echo "$config_type"
+    else
+        echo "$metadata_type"
+    fi
+}
+
 # Load all environment secrets for a profile from cache only
 # Usage: _zsh_op_export_cached_secrets <profile>
 _zsh_op_export_cached_secrets() {
@@ -241,8 +261,9 @@ _zsh_op_export_cached_secrets() {
         [[ -z "$line" ]] && continue
 
         # Parse: type:name (e.g., "env:GITHUB_TOKEN")
-        local secret_type="${line%%:*}"
+        local metadata_type="${line%%:*}"
         secret_name="${line#*:}"
+        local secret_type="$(_zsh_op_cached_secret_type "$profile" "$secret_name" "$metadata_type")"
 
         case "$secret_type" in
         env)
