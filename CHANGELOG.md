@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0](https://github.com/zsh-contrib/zsh-op/compare/v0.1.0...v0.2.0) (2026-05-06)
+
+
+### Features
+
+* add file secret support for storing sensitive files ([fa29a04](https://github.com/zsh-contrib/zsh-op/commit/fa29a0491a8d0768c138c7aabb8e7d0dabbb2ebd))
+* materialize file secrets in private runtime directory ([44ea984](https://github.com/zsh-contrib/zsh-op/commit/44ea9842111c4d26d3340fb699b696ac2ef1b6d0))
+
+
+### Bug Fixes
+
+* resolve cached secret type from config ([10443e0](https://github.com/zsh-contrib/zsh-op/commit/10443e078bdc9484cc3bd809ec075b1099c2640c))
+
 ## [0.1.0](https://github.com/zsh-contrib/zsh-op/compare/v0.0.1...v0.1.0) (2026-05-04)
 
 
