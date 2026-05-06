@@ -45,6 +45,16 @@ source "${ZSH_OP_PLUGIN_DIR}/functions/op-secret"
 
 # Autoload completion functions
 autoload -Uz _op_shell _op_secret
+autoload -Uz add-zsh-hook
+
+_zsh_op_cleanup_file_secrets() {
+    [[ -n "$_ZSH_OP_RUNTIME_DIR" ]] || return 0
+
+    rm -rf -- "$_ZSH_OP_RUNTIME_DIR"
+    unset _ZSH_OP_RUNTIME_DIR
+}
+
+add-zsh-hook zshexit _zsh_op_cleanup_file_secrets
 
 # Auto-export cached secrets on shell initialization
 _zsh_op_auto_export() {

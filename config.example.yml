@@ -24,7 +24,7 @@ accounts:
         name: OPENAI_API_KEY
         path: op://Personal/OpenAI/credential
 
-      # File secrets - written to disk, then the file path is exported
+      # File secrets - written to a private runtime directory, then the file path is exported
       - kind: file
         name: GOOGLE_APPLICATION_CREDENTIALS
         path: op://Personal/GCP/service-account-json
@@ -92,7 +92,7 @@ accounts:
 #
 # 4. Secret Kinds:
 #    - env: Environment variables (exported to shell)
-#    - file: File secrets (written to disk, path exported to shell)
+#    - file: File secrets (written to a private runtime directory, path exported to shell)
 #    - ssh: SSH private keys (added to ssh-agent)
 #
 # 5. Secret Names:

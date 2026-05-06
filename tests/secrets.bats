@@ -34,6 +34,6 @@ load_secrets_lib() {
   "
 
   [[ "$status" -eq 0 ]]
-  [[ "${lines[0]}" == "$BATS_TEST_TMPDIR/cache/files/personal/GOOGLE_APPLICATION_CREDENTIALS" ]]
+  [[ "${lines[0]}" == */zsh-op.*/files/personal/GOOGLE_APPLICATION_CREDENTIALS ]]
   [[ "${lines[1]}" == '{"type":"service_account"}' ]]
 }

@@ -85,7 +85,7 @@ accounts:
         path: op://Employee/GitHub SSH/private key?ssh-format=openssh
 ```
 
-See [config.example.yml](config.example.yml) for a complete annotated example. To find the correct `op://` path, right-click an item in the 1Password desktop app and select **Copy Secret Reference**. Append `?ssh-format=openssh` for SSH keys. File secrets are written to `ZSH_OP_CACHE_DIR/files/<profile>/<name>` and the `name` is exported as an environment variable containing that file path.
+See [config.example.yml](config.example.yml) for a complete annotated example. To find the correct `op://` path, right-click an item in the 1Password desktop app and select **Copy Secret Reference**. Append `?ssh-format=openssh` for SSH keys. File secrets are materialized in a private runtime directory, cleaned up when the shell exits, and the `name` is exported as an environment variable containing that file path.
 
 ### Environment Variables
 

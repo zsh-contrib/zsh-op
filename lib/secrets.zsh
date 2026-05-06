@@ -92,7 +92,37 @@ _zsh_op_export_env_secret() {
     return 0
 }
 
-# Write secret content to a cache file and return its path
+# Get or create the secure runtime directory for materialized file secrets
+_zsh_op_runtime_dir() {
+    if [[ -z "$_ZSH_OP_RUNTIME_DIR" ]]; then
+        local tmp_root="${TMPDIR:-/tmp}"
+        tmp_root="${tmp_root%/}"
+
+        local runtime_dir
+        if ! runtime_dir="$(mktemp -d "${tmp_root}/zsh-op.XXXXXXXXXX")"; then
+            gum log --level error "Failed to create file secret runtime directory"
+            return 1
+        fi
+
+        typeset -g _ZSH_OP_RUNTIME_DIR="$runtime_dir"
+    fi
+
+    if [[ -z "$_ZSH_OP_RUNTIME_DIR" ]]; then
+        gum log --level error "Failed to create file secret runtime directory"
+        return 1
+    fi
+
+    if ! mkdir -p "$_ZSH_OP_RUNTIME_DIR"; then
+        gum log --level error "Failed to create file secret runtime directory: $_ZSH_OP_RUNTIME_DIR"
+        return 1
+    fi
+
+    chmod 700 "$_ZSH_OP_RUNTIME_DIR" 2>/dev/null || true
+    echo "$_ZSH_OP_RUNTIME_DIR"
+    return 0
+}
+
+# Write secret content to a secure runtime file and return its path
 # Usage: _zsh_op_write_secret_file <profile> <secret_name> <value>
 _zsh_op_write_secret_file() {
     local profile="$1"
@@ -104,11 +134,16 @@ _zsh_op_write_secret_file() {
         return 1
     fi
 
-    local file_dir="${ZSH_OP_CACHE_DIR}/files/${profile}"
+    if ! _zsh_op_runtime_dir >/dev/null; then
+        return 1
+    fi
+
+    local runtime_dir="$_ZSH_OP_RUNTIME_DIR"
+    local file_dir="${runtime_dir}/files/${profile}"
     local file_path="${file_dir}/${secret_name}"
 
     if ! mkdir -p "$file_dir"; then
-        gum log --level error "Failed to create file secret cache directory: $file_dir"
+        gum log --level error "Failed to create file secret runtime directory: $file_dir"
         return 1
     fi
 
