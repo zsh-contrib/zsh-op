@@ -86,7 +86,7 @@ _zsh_op_add_ssh_key_to_agent() {
 
     # Create temporary file with 600 permissions
     local key_path
-    key_path=$(mktemp -t "ssh-${key_name}")
+    key_path=$(mktemp "${TMPDIR:-/tmp}/ssh-${key_name}.XXXXXX")
 
     # Ensure cleanup on exit
     trap "rm -f '$key_path'" EXIT INT TERM
