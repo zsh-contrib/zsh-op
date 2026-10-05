@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/zsh-contrib/zsh-op/compare/v0.2.1...v0.2.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* **keychain:** decode only values security marks as hex ([e8a6fe6](https://github.com/zsh-contrib/zsh-op/commit/e8a6fe658ab3630b42072be00127cd604e075756))
+
 ## [0.2.1](https://github.com/zsh-contrib/zsh-op/compare/v0.2.0...v0.2.1) (2026-05-15)
 
 
