@@ -1,4 +1,4 @@
-use crate::app::cli::*;
+use crate::app::args::*;
 use crate::log::{info, warn};
 use crate::vault::*;
 use anyhow::{bail, Context, Result};

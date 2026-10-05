@@ -6,8 +6,8 @@ use std::os::unix::process::ExitStatusExt;
 use std::path::Path;
 use std::process::{ExitCode, ExitStatus};
 
-use crate::app::cli::*;
-use crate::app::cmd::*;
+use crate::app::args::*;
+use crate::app::exec::*;
 use crate::vault::*;
 
 use anyhow::Result;
