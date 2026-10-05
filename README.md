@@ -6,29 +6,42 @@
 
 Stop typing `op read` by hand. `zsh-op` reads a YAML config, fetches secrets from 1Password on first use, caches them in macOS Keychain, and exports them automatically on every shell start — with SSH keys loaded into ssh-agent and credentials ready before you run a single command.
 
+The work is done by a small Rust binary, `zsh-op`; the zsh plugin wraps it with the `op-shell` and `op-secret` commands. Secrets never appear in process arguments and SSH keys are handed to ssh-agent without touching the disk.
+
 ![demo](docs/demo.webp)
 
 ## Requirements
 
-- macOS (for Keychain storage)
+- macOS (Keychain) or Linux (Secret Service)
 - [1Password CLI](https://developer.1password.com/docs/cli/get-started/) (`op`)
-- [gum](https://github.com/charmbracelet/gum) (`gum`)
-- `jq`
-- `python3` with PyYAML (`pip3 install PyYAML`)
+- OpenSSH (`ssh-add`) for SSH keys
 
-**macOS (Homebrew):**
+## Installation
 
-```bash
-brew install 1password-cli gum jq python3 && pip3 install PyYAML
-```
+### The `zsh-op` binary
+
+The plugin needs the `zsh-op` binary on your `PATH` (or set `ZSH_OP_BIN` to its location).
 
 **Nix:**
 
 ```bash
-nix profile install nixpkgs#_1password-cli nixpkgs#gum nixpkgs#jq nixpkgs#python3
+nix profile install github:zsh-contrib/zsh-op
 ```
 
-## Installation
+**Cargo:**
+
+```bash
+cargo install --git https://github.com/zsh-contrib/zsh-op
+```
+
+**Prebuilt:** download `zsh-op-<system>` from the [latest release](https://github.com/zsh-contrib/zsh-op/releases/latest), or let zinit fetch it:
+
+```zsh
+zinit ice from"gh-r" as"program" mv"zsh-op-* -> zsh-op"
+zinit light zsh-contrib/zsh-op
+```
+
+### The zsh plugin
 
 ### Using zinit
 
@@ -91,11 +104,11 @@ See [config.example.yml](config.example.yml) for a complete annotated example. T
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `ZSH_OP_BIN` | `zsh-op` | Path or name of the `zsh-op` binary |
 | `ZSH_OP_CONFIG_FILE` | `~/.config/op/config.yml` | Config file location |
 | `ZSH_OP_CACHE_DIR` | `~/.cache/op` | Cache directory |
 | `ZSH_OP_AUTO_EXPORT` | `true` | Auto-export env vars on shell init |
 | `ZSH_OP_DEFAULT_PROFILE` | `personal` | Default profile name |
-| `GUM_LOG_LEVEL` | `info` | Log level (`error`, `warn`, `info`, `debug`) |
 
 ## Usage
 
@@ -153,21 +166,46 @@ Cached env vars are exported from Keychain on shell startup — no 1Password API
 export ZSH_OP_AUTO_EXPORT=false
 ```
 
+### Using the binary directly
+
+`zsh-op` works without the plugin, from any shell or script:
+
+```
+Usage: zsh-op <COMMAND>
+
+Commands:
+  inspect  Inspect and display the configured profiles, their secrets and their cache state.
+  list     List profile names, or the secret names of a profile, one per line.
+  shell    Set up the shell environment with all secrets from a profile.
+  secret   Load an individual secret on demand.
+  export   Export the environment and file secrets of a profile as shell statements.
+  exec     Execute a command with the secrets of a profile in its environment.
+  clear    Clear the cached secrets of a profile.
+```
+
+```bash
+zsh-op inspect                          # show profiles, secrets and cache state
+eval "$(zsh-op export -p work)"         # export a profile into bash or zsh
+zsh-op export -p work --format json     # the same, as a JSON object
+zsh-op exec -p work -- terraform plan   # run one command with the secrets
+zsh-op clear -p work                    # delete the cached secrets of a profile
+```
+
 ## How It Works
 
 1. **Configuration** — YAML config defines profiles with `op://` secret references
 2. **1Password CLI** — fetches secrets via `op read` on first load
-3. **Keychain Caching** — stores secrets in macOS Keychain (encrypted at rest)
-4. **SSH Agent** — adds SSH keys to ssh-agent with configurable expiration
-5. **Shell Export** — automatically exports cached env vars on shell init
+3. **Keychain Caching** — stores secrets in macOS Keychain or the Linux Secret Service (encrypted at rest)
+4. **SSH Agent** — adds SSH keys to ssh-agent with configurable expiration, piping them through `ssh-add` without writing them to disk
+5. **Shell Export** — the plugin `eval`s the shell-quoted export statements printed by `zsh-op`, and exports cached env vars on shell init
 
 Secrets are stored as `op-secrets-{profile}` / `{secret-name}`. Metadata is tracked at `~/.cache/op/{profile}.metadata`.
 
 ## Troubleshooting
 
-**"python3 is required but not found"** — `brew install python3`
+**"'zsh-op' not found"** — install the binary (see [Installation](#installation)) or point `ZSH_OP_BIN` at it
 
-**"PyYAML module is required"** — `pip3 install PyYAML`
+**macOS asks to allow `zsh-op` access to the keychain** — secrets cached by earlier versions were stored by `/usr/bin/security`, so macOS asks once per item whether `zsh-op` may read them; choose **Always Allow**. Locally built binaries are not signed with a stable identity, so the prompt can come back after an upgrade. Alternatively, run `zsh-op clear -p <profile>` and `op-shell -r <profile>` to re-cache the secrets from 1Password.
 
 **"Not signed in to 1Password account"** — `op signin --account my.1password.com`
 
@@ -176,8 +214,6 @@ Secrets are stored as `op-secrets-{profile}` / `{secret-name}`. Metadata is trac
 **"SSH agent is not running"** — `eval $(ssh-agent)`
 
 **Secrets not auto-exporting** — ensure `op-shell` has run at least once, `ZSH_OP_AUTO_EXPORT` is not `false`, and metadata exists in `~/.cache/op/`
-
-**Debug logging** — `GUM_LOG_LEVEL=debug op-shell` or `DEBUG=1 op-shell`
 
 ## The zsh-contrib Ecosystem
 

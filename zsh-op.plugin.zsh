@@ -1,40 +1,53 @@
 #!/usr/bin/env zsh
 # zsh-op.plugin.zsh - 1Password integration for zsh
 #
-# Main plugin entry point that loads libraries, sets up autoload,
-# and handles auto-export of cached secrets on shell initialization.
+# Main plugin entry point: wraps the zsh-op binary, sets up autoload and
+# exports cached secrets on shell initialization.
 
 # Get plugin directory
 0="${${FUNCNAME[0]:-${(%):-%x}}:A}"
 ZSH_OP_PLUGIN_DIR="${0:h}"
 
-# Global configuration variables
-typeset -gA ZSH_OP_ACCOUNTS      # profile -> account-url
-typeset -gA ZSH_OP_SECRETS       # profile:name -> op-path
-typeset -gA ZSH_OP_SECRET_KINDS  # profile:name -> (env|ssh|file)
-typeset -gA ZSH_OP_SECRET_NAMES  # profile:name -> name
-
 # Default settings
+: ${ZSH_OP_BIN:="zsh-op"}
 : ${ZSH_OP_CONFIG_FILE:="$HOME/.config/op/config.yml"}
 : ${ZSH_OP_CACHE_DIR:="$HOME/.cache/op"}
 : ${ZSH_OP_AUTO_EXPORT:=true}
 : ${ZSH_OP_DEFAULT_PROFILE:="personal"}
-: ${GUM_LOG_LEVEL:="info"}
 
-# DEBUG support: if DEBUG=1, enable debug logging and shell tracing
-if [[ -n "$DEBUG" ]]; then
-    export GUM_LOG_LEVEL="debug"
-    set -x
-fi
+# Run the zsh-op binary with the plugin settings
+_zsh_op() {
+    if ! (( $+commands[$ZSH_OP_BIN] )) && [[ ! -x "$ZSH_OP_BIN" ]]; then
+        print -u2 "zsh-op: '$ZSH_OP_BIN' not found; install the zsh-op binary (see the README)"
+        return 127
+    fi
 
-# Export GUM_LOG_LEVEL so gum can see it
-export GUM_LOG_LEVEL
+    ZSH_OP_CONFIG_FILE="$ZSH_OP_CONFIG_FILE" \
+    ZSH_OP_CACHE_DIR="$ZSH_OP_CACHE_DIR" \
+    ZSH_OP_DEFAULT_PROFILE="$ZSH_OP_DEFAULT_PROFILE" \
+        command "$ZSH_OP_BIN" "$@"
+}
 
-# Load library files
-source "${ZSH_OP_PLUGIN_DIR}/lib/config.zsh"
-source "${ZSH_OP_PLUGIN_DIR}/lib/keychain.zsh"
-source "${ZSH_OP_PLUGIN_DIR}/lib/secrets.zsh"
-source "${ZSH_OP_PLUGIN_DIR}/lib/ssh.zsh"
+# Get or create the private runtime directory for materialized file secrets.
+# It is not exported, so child shells create (and clean up) their own.
+_zsh_op_runtime_dir() {
+    [[ -n "$_ZSH_OP_RUNTIME_DIR" && -d "$_ZSH_OP_RUNTIME_DIR" ]] && return 0
+
+    local runtime_dir
+    if ! runtime_dir="$(mktemp -d "${${TMPDIR:-/tmp}%/}/zsh-op.XXXXXXXXXX")"; then
+        print -u2 "zsh-op: failed to create file secret runtime directory"
+        return 1
+    fi
+
+    typeset -g _ZSH_OP_RUNTIME_DIR="$runtime_dir"
+}
+
+_zsh_op_cleanup_file_secrets() {
+    [[ -n "$_ZSH_OP_RUNTIME_DIR" ]] || return 0
+
+    rm -rf -- "$_ZSH_OP_RUNTIME_DIR"
+    unset _ZSH_OP_RUNTIME_DIR
+}
 
 # Add directories to fpath for autoload and completions
 fpath=("${ZSH_OP_PLUGIN_DIR}/functions" "${ZSH_OP_PLUGIN_DIR}/completions" $fpath)
@@ -47,68 +60,19 @@ source "${ZSH_OP_PLUGIN_DIR}/functions/op-secret"
 autoload -Uz _op_shell _op_secret
 autoload -Uz add-zsh-hook
 
-_zsh_op_cleanup_file_secrets() {
-    [[ -n "$_ZSH_OP_RUNTIME_DIR" ]] || return 0
-
-    rm -rf -- "$_ZSH_OP_RUNTIME_DIR"
-    unset _ZSH_OP_RUNTIME_DIR
-}
-
 add-zsh-hook zshexit _zsh_op_cleanup_file_secrets
 
-# Auto-export cached secrets on shell initialization
+# Auto-export cached secrets on shell initialization. Only profiles loaded
+# with op-shell are exported, from the keychain, without calling 1Password.
 _zsh_op_auto_export() {
-    # Skip if disabled
     [[ "$ZSH_OP_AUTO_EXPORT" == "true" ]] || return 0
-
-    # Skip if config doesn't exist
     [[ -f "$ZSH_OP_CONFIG_FILE" ]] || return 0
+    (( $+commands[$ZSH_OP_BIN] )) || [[ -x "$ZSH_OP_BIN" ]] || return 0
+    _zsh_op_runtime_dir || return 0
 
-    # Load config to get profiles
-    _zsh_op_load_config "$ZSH_OP_CONFIG_FILE" 2>/dev/null || return 0
-
-    # Export cached secrets for each profile
-    local profile
-    for profile in ${(k)ZSH_OP_ACCOUNTS}; do
-        local metadata_file="${ZSH_OP_CACHE_DIR}/${profile}.metadata"
-
-        # Skip if no metadata (profile never loaded)
-        [[ -f "$metadata_file" ]] || continue
-
-        # Read metadata to get list of cached secrets
-        local service="op-secrets-${profile}"
-        local line secret_name
-
-        while IFS= read -r line; do
-            # Skip comments and empty lines
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            [[ -z "$line" ]] && continue
-
-            # Parse: type:name (e.g., "env:GITHUB_TOKEN" or "ssh:github-work")
-            local metadata_type="${line%%:*}"
-            secret_name="${line#*:}"
-            local secret_type="$(_zsh_op_cached_secret_type "$profile" "$secret_name" "$metadata_type")"
-
-            case "$secret_type" in
-            env)
-                local value
-                if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
-                    export "${secret_name}=${value}"
-                    gum log --level debug "Exported '${secret_name}' from cache"
-                fi
-                ;;
-            file)
-                local value file_path
-                if value=$(_zsh_op_keychain_read "$service" "$secret_name" 2>/dev/null); then
-                    if file_path=$(_zsh_op_write_secret_file "$profile" "$secret_name" "$value"); then
-                        export "${secret_name}=${file_path}"
-                        gum log --level debug "Exported '${secret_name}' file path from cache"
-                    fi
-                fi
-                ;;
-            esac
-        done < "$metadata_file"
-    done
+    local output
+    output="$(_zsh_op export --all --cached --format zsh --runtime-dir "$_ZSH_OP_RUNTIME_DIR")"
+    eval "$output"
 }
 
 # Run auto-export on plugin load (suppress all output)

@@ -24,10 +24,8 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v23
 
-
       - name: Run Tests
-        run: |
-          nix develop --command bats tests/
+        run: nix develop --command cargo test
 
   release:
     needs: test
@@ -54,3 +52,37 @@ jobs:
           manifest-file: .github/config/release-please-manifest.json
           config-file: .github/config/release-please-config.json
           target-branch: main
+
+  build:
+    needs: release
+    if: ${{ needs.release.outputs.release_created }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            nix_system: x86_64-linux
+          - os: macos-15
+            nix_system: aarch64-darwin
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v23
+
+      - name: Build with Nix
+        run: nix build . --system ${{ matrix.nix_system }}
+
+      - name: Prepare Release Assets
+        run: |
+          mkdir -p release && install -m 0755 result/bin/zsh-op release/zsh-op-${{ matrix.nix_system }}
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release.outputs.tag_name }}
+          files: release/zsh-op-${{ matrix.nix_system }}
