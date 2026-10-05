@@ -34,20 +34,29 @@ _zsh_op_keychain_read() {
         return 1
     fi
 
-    # Read password from keychain (-w flag outputs only the password)
-    local value
-    if ! value=$(security find-generic-password -s "$service" -a "$account" -w 2>/dev/null); then
+    # Read password from keychain (-g prints it to stderr). Plain values print
+    # as: password: "<value>". Others (multiline, non-ASCII, backslashes) print
+    # as: password: 0x<HEX>  "<escaped>". Only the 0x form is hex-encoded:
+    # a value that merely looks like hex, like a 64-character key, is not.
+    local output
+    if ! output=$(security find-generic-password -s "$service" -a "$account" -g 2>&1 >/dev/null); then
         return 1
     fi
 
-    # Check if value is hex-encoded (multiline values get hex-encoded)
-    # Hex string: only contains 0-9a-f characters
-    if [[ "$value" =~ ^[0-9a-fA-F]+$ ]] && [[ ${#value} -gt 40 ]]; then
+    local line="${(M)${(f)output}:#password: *}"
+    local value
+    if [[ "$line" == "password: 0x"* ]]; then
         # Decode hex to original value
-        value=$(echo "$value" | xxd -r -p)
+        local hex="${line#password: 0x}"
+        value=$(print -r -- "${hex%% *}" | xxd -r -p)
+    elif [[ "$line" == 'password: "'*'"' ]]; then
+        value="${line#password: \"}"
+        value="${value%\"}"
+    else
+        return 1
     fi
 
-    echo "$value"
+    print -r -- "$value"
     return 0
 }
 
