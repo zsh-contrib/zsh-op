@@ -1,26 +1,10 @@
 use crate::app::cli::*;
-use crate::cache::api::*;
-use crate::op::api::*;
-use crate::ssh::api::*;
+use crate::log::{info, warn};
+use crate::vault::*;
 use anyhow::{bail, Context, Result};
-use std::cell::OnceCell;
 use std::collections::{BTreeMap, VecDeque};
-use std::fmt::Display;
-use std::fs::{DirBuilder, OpenOptions, Permissions};
 use std::io::Write;
-use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
-use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
-
-/// Prints a warning to stderr.
-fn warn(message: impl Display) {
-    eprintln!("zsh-op: warning: {message}");
-}
-
-/// Prints an informational message to stderr.
-fn info(message: impl Display) {
-    eprintln!("zsh-op: {message}");
-}
 
 /// Fails when any secret failed to load. The warnings were already printed.
 fn finish(failed: usize) -> Result<()> {
@@ -28,53 +12,6 @@ fn finish(failed: usize) -> Result<()> {
         bail!("failed to load {failed} secret(s)");
     }
     Ok(())
-}
-
-/// Loader resolves secret values from the keychain cache or 1Password.
-pub struct Loader {
-    /// Client used to fetch secrets from 1Password.
-    pub client: Box<dyn SecretClient>,
-    /// Cache holding previously fetched secrets.
-    pub cache: Cache,
-}
-
-impl Loader {
-    /// Returns the value of `secret`: from the cache unless `refresh` is set, otherwise
-    /// from 1Password, caching the fetched value.
-    pub fn load(&self, account: &Account, secret: &Secret, refresh: bool) -> Result<String> {
-        if !refresh {
-            match self.cache.get(&account.name, &secret.name) {
-                Ok(Some(value)) => return Ok(value),
-                Ok(None) => {}
-                Err(err) => warn(format!("{err:#}; fetching it from 1Password")),
-            }
-        }
-
-        let value = self.client.read(&account.account, &secret.path)?;
-        // A failed cache write only costs a 1Password round trip next time.
-        if let Err(err) = self.cache.set(&account.name, &secret.name, &value) {
-            warn(format!("{err:#}"));
-        }
-        Ok(value)
-    }
-}
-
-/// Source decides where secret values may come from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Source {
-    /// The keychain cache only; secrets that are not cached are skipped.
-    Cache,
-    /// The keychain cache, falling back to 1Password; `true` skips the cache.
-    Any(bool),
-}
-
-/// An environment variable to export.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Variable {
-    /// Variable name.
-    pub key: String,
-    /// Variable value.
-    pub value: String,
 }
 
 /// Quotes `value` for POSIX shells, so it survives `eval` unchanged.
@@ -103,141 +40,6 @@ fn write_variables(
         }
     }
     Ok(())
-}
-
-/// RuntimeDir is the private directory file secrets are written to.
-pub struct RuntimeDir {
-    /// Directory given by the caller.
-    root: Option<PathBuf>,
-    /// Temporary directory created on first use when no directory was given.
-    created: OnceCell<PathBuf>,
-}
-
-impl RuntimeDir {
-    /// Creates a runtime directory rooted at `root`, or at a new temporary directory.
-    pub fn new(root: Option<PathBuf>) -> Self {
-        Self {
-            root,
-            created: OnceCell::new(),
-        }
-    }
-
-    /// Returns the root directory, creating a temporary one if needed.
-    fn root(&self) -> Result<&Path> {
-        if let Some(root) = &self.root {
-            return Ok(root);
-        }
-        if let Some(created) = self.created.get() {
-            return Ok(created);
-        }
-
-        let dir = tempfile::Builder::new()
-            .prefix("zsh-op.")
-            .tempdir()
-            .context("failed to create file secret runtime directory")?
-            .keep();
-        warn(format!(
-            "file secrets are written to {}; remove it when done",
-            dir.display()
-        ));
-        Ok(self.created.get_or_init(|| dir))
-    }
-
-    /// Writes secret `name` of `profile` to a private file and returns its path.
-    pub fn write(&self, profile: &str, name: &str, value: &str) -> Result<PathBuf> {
-        let root = self.root()?;
-        let dir = root.join("files").join(profile);
-        DirBuilder::new()
-            .recursive(true)
-            .mode(0o700)
-            .create(&dir)
-            .with_context(|| format!("failed to create {}", dir.display()))?;
-        for path in [root, &root.join("files"), &dir] {
-            std::fs::set_permissions(path, Permissions::from_mode(0o700))?;
-        }
-
-        let path = dir.join(name);
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .mode(0o600)
-            .open(&path)
-            .with_context(|| format!("failed to write {}", path.display()))?;
-        file.set_permissions(Permissions::from_mode(0o600))?;
-        file.write_all(value.as_bytes())?;
-        Ok(path)
-    }
-}
-
-/// Returns true for the secrets that become environment variables.
-fn exportable(secret: &&Secret) -> bool {
-    secret.kind != SecretKind::Ssh
-}
-
-/// Resolves the variables of the given env and file secrets, writing file secrets to
-/// `runtime`. Each secret that fails is reported and counted rather than aborting the rest.
-fn resolve<'a>(
-    loader: &Loader,
-    runtime: &RuntimeDir,
-    account: &Account,
-    secrets: impl IntoIterator<Item = &'a Secret>,
-    source: Source,
-) -> (Vec<Variable>, usize) {
-    let mut variables = Vec::new();
-    let mut failed = 0;
-
-    for secret in secrets {
-        let result = match source {
-            Source::Cache => loader.cache.get(&account.name, &secret.name),
-            Source::Any(refresh) => loader.load(account, secret, refresh).map(Some),
-        }
-        .and_then(|value| match (value, secret.kind) {
-            (Some(value), SecretKind::File) => runtime
-                .write(&account.name, &secret.name, &value)
-                .map(|path| Some(path.to_string_lossy().into_owned())),
-            (value, _) => Ok(value),
-        });
-
-        match result {
-            Ok(Some(value)) => variables.push(Variable {
-                key: secret.name.clone(),
-                value,
-            }),
-            Ok(None) => {}
-            Err(err) => {
-                warn(format!("failed to load '{}': {err:#}", secret.name));
-                failed += 1;
-            }
-        }
-    }
-
-    (variables, failed)
-}
-
-/// Adds the SSH key `secret` to the agent, unless the agent already holds it and `refresh`
-/// is not set. Returns false when the key was already present.
-fn add_key(
-    loader: &Loader,
-    agent: &dyn KeyAgent,
-    present: &[String],
-    account: &Account,
-    secret: &Secret,
-    lifetime: &str,
-    refresh: bool,
-) -> Result<bool> {
-    let key = loader.load(account, secret, refresh)?;
-    // Re-adding a key resets its lifetime, so only do it when a refresh was requested.
-    if !refresh {
-        if let Ok(fingerprint) = fingerprint(&key) {
-            if present.contains(&fingerprint) {
-                return Ok(false);
-            }
-        }
-    }
-
-    agent.add(&key, lifetime)?;
-    Ok(true)
 }
 
 /// Inspect and display the configured profiles, their secrets and their cache state.
@@ -331,14 +133,10 @@ impl ShellCommand {
         let runtime = RuntimeDir::new(args.output.runtime_dir.clone());
 
         // Export the environment and file secrets
-        let secrets = account.secrets.iter().filter(exportable);
-        let (variables, mut failed) = resolve(
-            &self.loader,
-            &runtime,
-            account,
-            secrets,
-            Source::Any(args.refresh),
-        );
+        let secrets = account.secrets.iter().filter(|s| s.is_variable());
+        let (variables, mut failed) =
+            self.loader
+                .resolve(&runtime, account, secrets, Source::Any(args.refresh));
         write_variables(&mut self.writer, args.output.export_format(), &variables)?;
         if !variables.is_empty() {
             info(format!(
@@ -358,8 +156,7 @@ impl ShellCommand {
                 Ok(present) => {
                     let mut loaded = 0;
                     for key in &keys {
-                        match add_key(
-                            &self.loader,
+                        match self.loader.add_key(
                             self.agent.as_ref(),
                             &present,
                             account,
@@ -416,8 +213,7 @@ impl SecretCommand {
                 warn("--export is not valid for SSH keys (ignored)");
             }
             let present = self.agent.fingerprints()?;
-            let added = add_key(
-                &self.loader,
+            let added = self.loader.add_key(
                 self.agent.as_ref(),
                 &present,
                 account,
@@ -440,13 +236,9 @@ impl SecretCommand {
         }
 
         let runtime = RuntimeDir::new(args.output.runtime_dir.clone());
-        let (variables, failed) = resolve(
-            &self.loader,
-            &runtime,
-            account,
-            [secret],
-            Source::Any(args.refresh),
-        );
+        let (variables, failed) =
+            self.loader
+                .resolve(&runtime, account, [secret], Source::Any(args.refresh));
         finish(failed)?;
 
         if args.export {
@@ -491,18 +283,15 @@ impl ExportCommand {
                 let secrets = account
                     .secrets
                     .iter()
-                    .filter(exportable)
+                    .filter(|s| s.is_variable())
                     .filter(|s| names.contains(&s.name));
-                resolve(&self.loader, &runtime, account, secrets, Source::Cache)
+                self.loader
+                    .resolve(&runtime, account, secrets, Source::Cache)
             } else {
-                let secrets = account.secrets.iter().filter(exportable);
-                let resolved = resolve(
-                    &self.loader,
-                    &runtime,
-                    account,
-                    secrets,
-                    Source::Any(args.refresh),
-                );
+                let secrets = account.secrets.iter().filter(|s| s.is_variable());
+                let resolved =
+                    self.loader
+                        .resolve(&runtime, account, secrets, Source::Any(args.refresh));
                 self.loader.cache.save(account)?;
                 resolved
             };
@@ -534,14 +323,10 @@ impl ExecCommand {
             .context("failed to create file secret runtime directory")?;
         let runtime = RuntimeDir::new(Some(dir.path().to_path_buf()));
 
-        let secrets = account.secrets.iter().filter(exportable);
-        let (variables, failed) = resolve(
-            &self.loader,
-            &runtime,
-            account,
-            secrets,
-            Source::Any(args.refresh),
-        );
+        let secrets = account.secrets.iter().filter(|s| s.is_variable());
+        let (variables, failed) =
+            self.loader
+                .resolve(&runtime, account, secrets, Source::Any(args.refresh));
         // Do not run the command with a partial environment
         finish(failed)?;
 
@@ -615,8 +400,8 @@ impl ClearCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ssh::api::tests::KEY;
     use indoc::indoc;
+    use std::path::{Path, PathBuf};
     use std::sync::*;
 
     #[derive(Clone)]
@@ -843,21 +628,6 @@ mod tests {
     }
 
     #[test]
-    fn runtime_dir_writes_private_files() {
-        let fixture = Fixture::new();
-        let runtime = RuntimeDir::new(Some(fixture.runtime_dir()));
-
-        let path = runtime.write("personal", "GCP_CREDENTIALS", "{}").unwrap();
-
-        assert_eq!(path, fixture.file("personal", "GCP_CREDENTIALS"));
-        assert_eq!(std::fs::read_to_string(&path).unwrap(), "{}");
-        let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
-        assert_eq!(mode(&path), 0o600);
-        assert_eq!(mode(path.parent().unwrap()), 0o700);
-        assert_eq!(mode(&fixture.runtime_dir()), 0o700);
-    }
-
-    #[test]
     fn inspect_writes_profiles() -> Result<()> {
         let fixture = Fixture::new().loaded("personal", "env:GITHUB_TOKEN\n");
         let writer = Writer::new();
@@ -948,11 +718,11 @@ mod tests {
         let fixture = Fixture::new()
             .cached("personal", "GITHUB_TOKEN", "brown-fox")
             .cached("personal", "GCP_CREDENTIALS", "{\"type\":\"sa\"}")
-            .cached("personal", "my-key", &KEY);
+            .cached("personal", "my-key", &TEST_KEY);
         let mut agent = agent(vec![]);
         agent
             .expect_add()
-            .withf(|key, lifetime| *key == *KEY && lifetime == "1h")
+            .withf(|key, lifetime| *key == *TEST_KEY && lifetime == "1h")
             .times(1)
             .returning(|_, _| Ok(()));
         let writer = Writer::new();
@@ -993,7 +763,7 @@ mod tests {
         expect_read(
             &mut client,
             "op://Private/SSH/private key?ssh-format=openssh",
-            KEY.as_str(),
+            TEST_KEY.as_str(),
         );
         let mut agent = agent(vec![]);
         agent.expect_add().times(1).returning(|_, _| Ok(()));
@@ -1015,7 +785,7 @@ mod tests {
         );
         assert_eq!(
             fixture.value("personal", "my-key").as_deref(),
-            Some(KEY.as_str())
+            Some(TEST_KEY.as_str())
         );
         Ok(())
     }
@@ -1025,16 +795,16 @@ mod tests {
         let fixture = Fixture::new()
             .cached("personal", "GITHUB_TOKEN", "stale")
             .cached("personal", "GCP_CREDENTIALS", "stale")
-            .cached("personal", "my-key", &KEY);
+            .cached("personal", "my-key", &TEST_KEY);
         let mut client = MockSecretClient::new();
         expect_read(&mut client, "op://Personal/GitHub/token", "fresh");
         expect_read(&mut client, "op://Personal/GCP/credentials", "fresh");
         expect_read(
             &mut client,
             "op://Private/SSH/private key?ssh-format=openssh",
-            KEY.as_str(),
+            TEST_KEY.as_str(),
         );
-        let mut agent = agent(vec![fingerprint(&KEY)?]);
+        let mut agent = agent(vec![fingerprint(&TEST_KEY)?]);
         agent.expect_add().times(1).returning(|_, _| Ok(()));
         let mut cmd = ShellCommand {
             writer: Box::new(Writer::new()),
@@ -1056,8 +826,8 @@ mod tests {
         let fixture = Fixture::new()
             .cached("personal", "GITHUB_TOKEN", "a")
             .cached("personal", "GCP_CREDENTIALS", "b")
-            .cached("personal", "my-key", &KEY);
-        let mut agent = agent(vec![fingerprint(&KEY)?]);
+            .cached("personal", "my-key", &TEST_KEY);
+        let mut agent = agent(vec![fingerprint(&TEST_KEY)?]);
         agent.expect_add().never();
         let mut cmd = ShellCommand {
             writer: Box::new(Writer::new()),
@@ -1152,7 +922,7 @@ mod tests {
 
     #[test]
     fn secret_adds_ssh_key_with_expiration() -> Result<()> {
-        let fixture = Fixture::new().cached("personal", "my-key", &KEY);
+        let fixture = Fixture::new().cached("personal", "my-key", &TEST_KEY);
         let mut agent = agent(vec![]);
         agent
             .expect_add()

@@ -83,26 +83,24 @@ pub fn fingerprint(key: &str) -> Result<String> {
     Ok(key.fingerprint(ssh_key::HashAlg::Sha256).to_string())
 }
 
+/// A throwaway ed25519 key, generated once per test run.
 #[cfg(test)]
-pub mod tests {
-    use super::*;
-    use std::sync::LazyLock;
+pub static TEST_KEY: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    let key =
+        ssh_key::PrivateKey::random(&mut ssh_key::rand_core::OsRng, ssh_key::Algorithm::Ed25519)
+            .unwrap();
+    key.to_openssh(ssh_key::LineEnding::LF).unwrap().to_string()
+});
 
-    /// A throwaway ed25519 key, generated once per test run.
-    pub static KEY: LazyLock<String> = LazyLock::new(|| {
-        let key = ssh_key::PrivateKey::random(
-            &mut ssh_key::rand_core::OsRng,
-            ssh_key::Algorithm::Ed25519,
-        )
-        .unwrap();
-        key.to_openssh(ssh_key::LineEnding::LF).unwrap().to_string()
-    });
+#[cfg(test)]
+mod tests {
+    use super::*;
 
     #[test]
     fn fingerprint_matches_ssh_keygen() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("key");
-        std::fs::write(&path, KEY.as_str()).unwrap();
+        std::fs::write(&path, TEST_KEY.as_str()).unwrap();
         std::fs::set_permissions(&path, std::os::unix::fs::PermissionsExt::from_mode(0o600))
             .unwrap();
 
@@ -114,7 +112,7 @@ pub mod tests {
         let expected = String::from_utf8(output.stdout).unwrap();
 
         assert_eq!(
-            Some(fingerprint(&KEY).unwrap().as_str()),
+            Some(fingerprint(&TEST_KEY).unwrap().as_str()),
             expected.split_whitespace().nth(1)
         );
     }
@@ -123,11 +121,11 @@ pub mod tests {
     #[ignore = "talks to the ssh-agent at $SSH_AUTH_SOCK"]
     fn agent_adds_key_from_stdin() {
         let agent = Agent::new();
-        agent.add(&KEY, "1m").unwrap();
+        agent.add(&TEST_KEY, "1m").unwrap();
         assert!(agent
             .fingerprints()
             .unwrap()
-            .contains(&fingerprint(&KEY).unwrap()));
+            .contains(&fingerprint(&TEST_KEY).unwrap()));
     }
 
     #[test]

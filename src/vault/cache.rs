@@ -5,7 +5,7 @@ use std::{
     sync::OnceLock,
 };
 
-use crate::op::api::Account;
+use crate::vault::Account;
 
 /// SecretStore persists secret values in a secure credential store.
 pub trait SecretStore {
@@ -237,7 +237,7 @@ impl SecretStore for MemoryStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::op::api::Config;
+    use crate::vault::Config;
     use indoc::indoc;
 
     fn account() -> Account {

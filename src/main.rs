@@ -1,7 +1,6 @@
 mod app;
-mod cache;
-mod op;
-mod ssh;
+mod log;
+mod vault;
 
 use std::os::unix::process::ExitStatusExt;
 use std::path::Path;
@@ -9,9 +8,7 @@ use std::process::{ExitCode, ExitStatus};
 
 use crate::app::cli::*;
 use crate::app::cmd::*;
-use crate::cache::api::*;
-use crate::op::api::*;
-use crate::ssh::api::*;
+use crate::vault::*;
 
 use anyhow::Result;
 use clap::Parser;
