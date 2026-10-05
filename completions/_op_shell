@@ -1,4 +1,3 @@
-#!/usr/bin/env zsh
 #compdef op-shell
 
 # Completion for op-shell command

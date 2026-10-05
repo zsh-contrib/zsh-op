@@ -6,39 +6,33 @@
 
 Stop typing `op read` by hand. `zsh-op` reads a YAML config, fetches secrets from 1Password on first use, caches them in macOS Keychain, and exports them automatically on every shell start — with SSH keys loaded into ssh-agent and credentials ready before you run a single command.
 
-The work is done by a small Rust binary, `zsh-op`; the zsh plugin wraps it with the `op-shell` and `op-secret` commands. Secrets never appear in process arguments and SSH keys are handed to ssh-agent without touching the disk.
+The work is done by [secret-env](https://github.com/secret-env/secret-env), a small standalone binary; this plugin wraps it with the `op-shell` and `op-secret` commands, completions, and automatic export on shell start. Secrets never appear in process arguments and SSH keys are handed to ssh-agent without touching the disk.
 
 ![demo](docs/demo.webp)
 
 ## Requirements
 
+- [secret-env](https://github.com/secret-env/secret-env)
 - macOS (Keychain) or Linux (Secret Service)
 - [1Password CLI](https://developer.1password.com/docs/cli/get-started/) (`op`)
 - OpenSSH (`ssh-add`) for SSH keys
 
 ## Installation
 
-### The `zsh-op` binary
+### The `secret-env` binary
 
-The plugin needs the `zsh-op` binary on your `PATH` (or set `ZSH_OP_BIN` to its location).
-
-**Nix:**
+The plugin needs [secret-env](https://github.com/secret-env/secret-env) on your `PATH` (or set `ZSH_OP_BIN` to its location). See its README for all installation options, for example:
 
 ```bash
-nix profile install github:zsh-contrib/zsh-op
+nix profile install github:secret-env/secret-env
 ```
 
-**Cargo:**
-
-```bash
-cargo install --git https://github.com/zsh-contrib/zsh-op
-```
-
-**Prebuilt:** download `zsh-op-<system>` from the [latest release](https://github.com/zsh-contrib/zsh-op/releases/latest), or let zinit fetch it:
+With zinit, it can fetch the prebuilt binary together with the plugin:
 
 ```zsh
-zinit ice from"gh-r" as"program" mv"zsh-op-* -> zsh-op"
-zinit light zsh-contrib/zsh-op
+zinit ice from"gh-r" as"program" mv"secret-env-* -> secret-env"
+zinit light secret-env/secret-env
+zinit load zsh-contrib/zsh-op
 ```
 
 ### The zsh plugin
@@ -104,7 +98,7 @@ See [config.example.yml](config.example.yml) for a complete annotated example. T
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ZSH_OP_BIN` | `zsh-op` | Path or name of the `zsh-op` binary |
+| `ZSH_OP_BIN` | `secret-env` | Path or name of the `secret-env` binary |
 | `ZSH_OP_CONFIG_FILE` | `~/.config/op/config.yml` | Config file location |
 | `ZSH_OP_CACHE_DIR` | `~/.cache/op` | Cache directory |
 | `ZSH_OP_AUTO_EXPORT` | `true` | Auto-export env vars on shell init |
@@ -168,28 +162,7 @@ export ZSH_OP_AUTO_EXPORT=false
 
 ### Using the binary directly
 
-`zsh-op` works without the plugin, from any shell or script:
-
-```
-Usage: zsh-op <COMMAND>
-
-Commands:
-  inspect  Inspect and display the configured profiles, their secrets and their cache state.
-  list     List profile names, or the secret names of a profile, one per line.
-  shell    Set up the shell environment with all secrets from a profile.
-  secret   Load an individual secret on demand.
-  export   Export the environment and file secrets of a profile as shell statements.
-  exec     Execute a command with the secrets of a profile in its environment.
-  clear    Clear the cached secrets of a profile.
-```
-
-```bash
-zsh-op inspect                          # show profiles, secrets and cache state
-eval "$(zsh-op export -p work)"         # export a profile into bash or zsh
-zsh-op export -p work --format json     # the same, as a JSON object
-zsh-op exec -p work -- terraform plan   # run one command with the secrets
-zsh-op clear -p work                    # delete the cached secrets of a profile
-```
+Everything the plugin does is available from `secret-env` in any shell or script, for example `secret-env exec -p work -- terraform plan` or `eval "$(secret-env export -p work)"` in bash. See the [secret-env README](https://github.com/secret-env/secret-env#usage).
 
 ## How It Works
 
@@ -197,15 +170,15 @@ zsh-op clear -p work                    # delete the cached secrets of a profile
 2. **1Password CLI** — fetches secrets via `op read` on first load
 3. **Keychain Caching** — stores secrets in macOS Keychain or the Linux Secret Service (encrypted at rest)
 4. **SSH Agent** — adds SSH keys to ssh-agent with configurable expiration, piping them through `ssh-add` without writing them to disk
-5. **Shell Export** — the plugin `eval`s the shell-quoted export statements printed by `zsh-op`, and exports cached env vars on shell init
+5. **Shell Export** — the plugin `eval`s the shell-quoted export statements printed by `secret-env`, and exports cached env vars on shell init
 
 Secrets are stored as `op-secrets-{profile}` / `{secret-name}`. Metadata is tracked at `~/.cache/op/{profile}.metadata`.
 
 ## Troubleshooting
 
-**"'zsh-op' not found"** — install the binary (see [Installation](#installation)) or point `ZSH_OP_BIN` at it
+**"'secret-env' not found"** — install the binary (see [Installation](#installation)) or point `ZSH_OP_BIN` at it
 
-**macOS asks to allow `zsh-op` access to the keychain** — secrets cached by earlier versions were stored by `/usr/bin/security`, so macOS asks once per item whether `zsh-op` may read them; choose **Always Allow**. Locally built binaries are not signed with a stable identity, so the prompt can come back after an upgrade. Alternatively, run `zsh-op clear -p <profile>` and `op-shell -r <profile>` to re-cache the secrets from 1Password.
+**macOS asks to allow `secret-env` access to the keychain** — secrets cached by earlier versions of this plugin were stored by `/usr/bin/security`, so macOS asks once per item whether `secret-env` may read them; choose **Always Allow**. Locally built binaries are not signed with a stable identity, so the prompt can come back after an upgrade. Alternatively, run `secret-env clear -p <profile>` and `op-shell -r <profile>` to re-cache the secrets from 1Password.
 
 **"Not signed in to 1Password account"** — `op signin --account my.1password.com`
 
