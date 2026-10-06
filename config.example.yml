@@ -40,7 +40,7 @@ accounts:
 
   # Work 1Password account
   - name: work
-    account: team-em.1password.com
+    account: team.1password.com
     secrets:
       # Environment variables
       - kind: env
