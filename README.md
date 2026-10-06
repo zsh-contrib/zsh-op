@@ -2,6 +2,35 @@
 
 > 1Password CLI for Zsh — secure credential caching, multi-profile support, and SSH key management.
 
+> [!WARNING]
+> **zsh-op is no longer maintained.** It is superseded by **[keysafe](https://github.com/keysafe-dev/keysafe)**, which does the same job for zsh and bash, without the gum, jq and python dependencies.
+>
+> To migrate, install keysafe and replace the plugin with this line in `~/.zshrc`:
+>
+> ```zsh
+> eval "$(keysafe init zsh)"
+> ```
+>
+> | zsh-op | keysafe |
+> |---|---|
+> | `op-shell work` | `keysafe load -p work` |
+> | `op-secret NAME -x` | `keysafe load NAME` |
+> | `op-secret NAME` | `keysafe read NAME` |
+> | `op-secret <ssh key>` | `keysafe load <ssh key>` |
+>
+> Your config needs two changes: rename `accounts:` to `profiles:`, and move each profile's `account:` into a `provider` section:
+>
+> ```yaml
+> profiles:
+>   - name: work
+>     provider:
+>       type: 1password
+>       account: team.1password.com
+>     secrets: ...
+> ```
+>
+> keysafe reads `~/.config/op/config.yml` until you move it to `~/.config/keysafe/config.yml`, and picks up the secrets zsh-op cached in the Keychain.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![CI](https://github.com/zsh-contrib/zsh-op/actions/workflows/ci.yml/badge.svg)](https://github.com/zsh-contrib/zsh-op/actions/workflows/ci.yml)
 
 Stop typing `op read` by hand. `zsh-op` reads a YAML config, fetches secrets from 1Password on first use, caches them in macOS Keychain, and exports them automatically on every shell start — with SSH keys loaded into ssh-agent and credentials ready before you run a single command.
