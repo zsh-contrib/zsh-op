@@ -18,7 +18,7 @@
 > | `op-secret NAME` | `keysafe read NAME` |
 > | `op-secret <ssh key>` | `keysafe load <ssh key>` |
 >
-> Your config keeps working: keysafe reads `~/.config/op/config.yml` until you move it to `~/.config/keysafe/config.yml`, and picks up the secrets zsh-op cached in the Keychain.
+> Your config needs one change: rename `accounts:` to `profiles:`. keysafe reads `~/.config/op/config.yml` until you move it to `~/.config/keysafe/config.yml`, and picks up the secrets zsh-op cached in the Keychain.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![CI](https://github.com/zsh-contrib/zsh-op/actions/workflows/ci.yml/badge.svg)](https://github.com/zsh-contrib/zsh-op/actions/workflows/ci.yml)
 
